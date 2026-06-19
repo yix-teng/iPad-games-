@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="theme-color" content="#1a1c2c">
+<title>WRECK IT — Demolition</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; -webkit-tap-highlight-color:transparent; user-select:none; -webkit-user-select:none; touch-action:none; }
+  html,body { width:100%; height:100%; overflow:hidden; background:#0d0e1a; font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; }
+  #game { position:fixed; inset:0; display:block; }
+  canvas { display:block; width:100%; height:100%; }
+
+  /* Rotate-device prompt for portrait */
+  #rotate {
+    position:fixed; inset:0; z-index:50; display:none;
+    background:#11132a; color:#cfd2ff; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; padding:30px; gap:18px;
+  }
+  #rotate.show { display:flex; }
+  #rotate .ph {
+    width:120px; height:70px; border:4px solid #6c7bff; border-radius:12px;
+    animation:rot 1.6s ease-in-out infinite;
+  }
+  @keyframes rot { 0%,40%{transform:rotate(0)} 60%,100%{transform:rotate(-90deg)} }
+  #rotate h2 { font-size:22px; font-weight:800; letter-spacing:1px; }
+  #rotate p { font-size:15px; opacity:.7; max-width:280px; }
+
+  /* HUD */
+  .hud { position:fixed; z-index:10; color:#fff; pointer-events:none; }
+  #topbar {
+    top:0; left:0; right:0; display:flex; align-items:center; justify-content:space-between;
+    padding:max(10px,env(safe-area-inset-top)) max(16px,env(safe-area-inset-right)) 10px max(16px,env(safe-area-inset-left));
+    background:linear-gradient(#000a,transparent);
+  }
+  #lvlInfo { font-size:14px; font-weight:700; opacity:.85; text-shadow:0 2px 6px #000; }
+  #progressWrap { flex:1; max-width:360px; margin:0 16px; }
+  #progressBar { height:14px; background:#ffffff22; border-radius:8px; overflow:hidden; border:1px solid #ffffff33; }
+  #progressFill { height:100%; width:0%; background:linear-gradient(90deg,#ff5d5d,#ffb15d); transition:width .15s; }
+  #progressTxt { font-size:11px; font-weight:800; text-align:center; margin-top:3px; text-shadow:0 1px 3px #000; }
+
+  /* Tool dock */
+  #tools {
+    position:fixed; z-index:10; right:max(14px,env(safe-area-inset-right));
+    top:50%; transform:translateY(-50%); display:flex; flex-direction:column; gap:12px;
+  }
+  .tool {
+    width:60px; height:60px; border-radius:16px; background:#1c2040cc; border:2px solid #ffffff22;
+    display:flex; flex-direction:column; align-items:center; justify-content:center; gap:2px;
+    color:#fff; font-size:10px; font-weight:700; backdrop-filter:blur(6px); cursor:pointer;
+    pointer-events:auto; transition:transform .08s, border-color .12s;
+  }
+  .tool .ic { font-size:24px; line-height:1; }
+  .tool.active { border-color:#ffd35d; background:#3a2f10cc; box-shadow:0 0 16px #ffd35d66; }
+  .tool:active { transform:scale(.92); }
+
+  #pauseBtn {
+    pointer-events:auto; cursor:pointer; width:42px; height:42px; border-radius:12px;
+    background:#1c2040cc; border:2px solid #ffffff22; color:#fff; font-size:18px;
+    display:flex; align-items:center; justify-content:center;
+  }
+
+  /* Overlays */
+  .overlay {
+    position:fixed; inset:0; z-index:30; display:none; flex-direction:column;
+    align-items:center; justify-content:center; text-align:center; gap:20px; padding:30px;
+    background:#0b0c1ae6; color:#fff; backdrop-filter:blur(4px);
+  }
+  .overlay.show { display:flex; }
+  .overlay h1 { font-size:clamp(30px,7vw,52px); font-weight:900; letter-spacing:2px;
+    background:linear-gradient(90deg,#ff5d5d,#ffd35d); -webkit-background-clip:text; background-clip:text; color:transparent; }
+  .overlay h2 { font-size:clamp(22px,5vw,34px); font-weight:800; }
+  .overlay p { font-size:15px; opacity:.75; max-width:420px; line-height:1.5; }
+  .btn {
+    pointer-events:auto; cursor:pointer; padding:14px 34px; border-radius:14px; border:none;
+    font-size:18px; font-weight:800; letter-spacing:1px; color:#1a1226;
+    background:linear-gradient(90deg,#ffd35d,#ff9d4d); box-shadow:0 6px 0 #b56a1f, 0 10px 20px #0008;
+    transition:transform .06s, box-shadow .06s;
+  }
+  .btn:active { transform:translateY(4px); box-shadow:0 2px 0 #b56a1f, 0 4px 10px #0008; }
+  .btn.alt { background:linear-gradient(90deg,#7d8bff,#5d6dff); color:#fff; box-shadow:0 6px 0 #3a45a8,0 10px 20px #0008; }
+  .btn.alt:active { box-shadow:0 2px 0 #3a45a8; }
+  .row { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; }
+  .hint { display:flex; gap:14px; flex-wrap:wrap; justify-content:center; max-width:520px; }
+  .chip { background:#ffffff14; border:1px solid #ffffff22; border-radius:12px; padding:10px 14px;
+    font-size:13px; display:flex; align-items:center; gap:8px; }
+  .chip .e { font-size:20px; }
+  .stars { font-size:40px; letter-spacing:6px; }
+  #starHint { font-size:13px; opacity:.6; }
+</style>
+</head>
+<body>
+<div id="rotate">
+  <div class="ph"></div>
+  <h2>ROTATE YOUR DEVICE</h2>
+  <p>WRECK IT plays in landscape. Turn your phone sideways to start demolishing.</p>
+</div>
+
+<canvas id="game"></canvas>
+
+<!-- HUD -->
+<div id="topbar" class="hud">
+  <div style="display:flex;align-items:center;gap:12px;">
+    <div id="pauseBtn">II</div>
+    <div id="lvlInfo">LEVEL 1</div>
+  </div>
+  <div id="progressWrap">
+    <div id="progressBar"><div id="progressFill"></div></div>
+    <div id="progressTxt">DEMOLISHED 0%</div>
+  </div>
+  <div style="width:54px"></div>
+</div>
+
+<div id="tools" class="hud"></div>
+
+<!-- Start overlay -->
+<div id="startScreen" class="overlay show">
+  <h1>WRECK IT</h1>
+  <p>You're the demolition crew. Tear down each structure until enough rubble is cleared. Swing the wrecking ball, lob bombs, and slice beams.</p>
+  <div class="hint">
+    <div class="chip"><span class="e">🔨</span> Drag &amp; release the ball to swing</div>
+    <div class="chip"><span class="e">💣</span> Drag to aim, release to throw</div>
+    <div class="chip"><span class="e">✂️</span> Drag across a block to cut it</div>
+  </div>
+  <button class="btn" id="startBtn">START DEMOLITION</button>
+</div>
+
+<!-- Level complete -->
+<div id="winScreen" class="overlay">
+  <h2 id="winTitle">DEMOLISHED!</h2>
+  <div class="stars" id="winStars">★ ★ ★</div>
+  <div id="starHint">Clear faster &amp; with fewer tools for 3 stars</div>
+  <p id="winStats"></p>
+  <div class="row">
+    <button class="btn alt" id="replayBtn">REPLAY</button>
+    <button class="btn" id="nextBtn">NEXT LEVEL</button>
+  </div>
+</div>
+
+<!-- Pause -->
+<div id="pauseScreen" class="overlay">
+  <h2>PAUSED</h2>
+  <div class="row">
+    <button class="btn alt" id="restartBtn">RESTART</button>
+    <button class="btn" id="resumeBtn">RESUME</button>
+  </div>
+</div>
+
+<!-- All done -->
+<div id="endScreen" class="overlay">
+  <h1>CITY CLEARED</h1>
+  <p id="endStats">You demolished every structure. Total stars earned shown above.</p>
+  <div class="stars" id="endStars"></div>
+  <button class="btn" id="endBtn">PLAY AGAIN</button>
+</div>
+
+<script>
+"use strict";
+/* ============================================================
+   WRECK IT — a Teardown-inspired 2D destruction game.
+   Single-file, touch-first, landscape mobile.
+   Lightweight custom physics: rigid AABB blocks + verlet
+   wrecking ball + thrown bombs with radial explosions.
+   ============================================================ */
+
+const canvas = document.getElementById('game');
+const ctx = canvas.getContext('2d');
+
+let W = 0, H = 0, DPR = 1;
+function resize(){
+  DPR = Math.min(window.devicePixelRatio || 1, 2);
+  W = window.innerWidth; H = window.innerHeight;
+  canvas.width = Math.floor(W * DPR);
+  canvas.height = Math.floor(H * DPR);
+  canvas.style.width = W + 'px';
+  canvas.style.height = H + 'px';
+  ctx.setTransform(DPR,0,0,DPR,0,0);
+  checkOrientation();
+}
+window.addEventListener('resize', resize);
+window.addEventListener('orientationchange', ()=>setTimeout(resize,200));
+
+function checkOrientation(){
+  const portrait = window.innerHeight > window.innerWidth;
+  document.getElementById('rotate').classList.toggle('show', portrait);
+}
+
+/* ---------- Utility ---------- */
+const rand = (a,b)=> a + Math.random()*(b-a);
+const clamp = (v,a,b)=> v<a?a:v>b?b:v;
+const dist = (x1,y1,x2,y2)=> Math.hypot(x2-x1,y2-y1);
+
+/* ---------- Simple SFX via WebAudio ---------- */
+let actx = null;
+function audioInit(){ if(!actx){ try{ actx = new (window.AudioContext||window.webkitAudioContext)(); }catch(e){} } }
+function beep(freq, dur, type='square', vol=0.08){
+  if(!actx) return;
+  const o = actx.createOscillator(), g = actx.createGain();
+  o.type = type; o.frequency.value = freq;
+  g.gain.value = vol;
+  o.connect(g); g.connect(actx.destination);
+  const t = actx.currentTime;
+  g.gain.setValueAtTime(vol, t);
+  g.gain.exponentialRampToValueAtTime(0.0001, t+dur);
+  o.start(t); o.stop(t+dur);
+}
+function noiseBurst(dur=0.25, vol=0.18){
+  if(!actx) return;
+  const n = Math.floor(actx.sampleRate*dur);
+  const buf = actx.createBuffer(1,n,actx.sampleRate);
+  const d = buf.getChannelData(0);
+  for(let i=0;i<n;i++){ d[i] = (Math.random()*2-1)*(1-i/n); }
+  const src = actx.createBufferSource(); src.buffer = buf;
+  const g = actx.createGain(); g.gain.value = vol;
+  const f = actx.createBiquadFilter(); f.type='lowpass'; f.frequency.value=900;
+  src.connect(f); f.connect(g); g.connect(actx.destination);
+  src.start();
+}
+
+/* ============================================================
+   PHYSICS WORLD
+   Blocks are axis-aligned rectangles with velocity + simple
+   integration. Ground + block stacking via penetration solve.
+   ============================================================ */
+const GRAV = 1400;          // px/s^2
+const GROUND_FRICTION = 0.82;
+let groundY = 0;
+
+class Block {
+  constructor(x,y,w,h,mat){
+    this.x=x; this.y=y; this.w=w; this.h=h;
+    this.vx=0; this.vy=0; this.va=0; this.ang=0;
+    this.mat = mat;                 // material def
+    this.hp = mat.hp;
+    this.maxHp = mat.hp;
+    this.dead = false;
+    this.settled = false;
+    this.onGround = false;
+    this.support = mat.support;     // structural? counts to demolition
+    this.flash = 0;
+  }
+  get cx(){ return this.x + this.w/2; }
+  get cy(){ return this.y + this.h/2; }
+  get mass(){ return (this.w*this.h)/2000 * this.mat.density; }
+}
+
+/* Materials */
+const MATS = {
+  wood:   { name:'wood',   color:'#b07a3c', edge:'#7d5526', hp:55,  density:0.7, support:true,  cuttable:true },
+  brick:  { name:'brick',  color:'#b1492f', edge:'#7d2f1d', hp:120, density:1.3, support:true,  cuttable:false },
+  stone:  { name:'stone',  color:'#8a8f99', edge:'#5d626c', hp:200, density:1.8, support:true,  cuttable:false },
+  glass:  { name:'glass',  color:'#7fd6ff', edge:'#bff0ff', hp:25,  density:0.5, support:false, cuttable:true },
+  metal:  { name:'metal',  color:'#9aa6c2', edge:'#5d6788', hp:320, density:2.2, support:true,  cuttable:false },
+  goal:   { name:'goal',   color:'#ffd35d', edge:'#b58a1f', hp:90,  density:0.9, support:true,  cuttable:true },
+};
+
+let blocks = [];
+let particles = [];
+let totalSupport = 0;     // initial structural mass
+let demolished = 0;       // mass converted to rubble
+let shake = 0;
+
+/* ---------- Particles ---------- */
+class Particle {
+  constructor(x,y,vx,vy,color,life,size){
+    this.x=x;this.y=y;this.vx=vx;this.vy=vy;this.color=color;
+    this.life=life;this.max=life;this.size=size; this.g = 1;
+  }
+}
+function spawnDebris(x,y,color,n,power){
+  for(let i=0;i<n;i++){
+    const a = rand(0,Math.PI*2), s = rand(40, 60+power);
+    particles.push(new Particle(x,y,Math.cos(a)*s,Math.sin(a)*s - power*0.3, color, rand(0.4,1.1), rand(2,5)));
+  }
+}
+function spawnSpark(x,y,n,color){
+  for(let i=0;i<n;i++){
+    const a = rand(0,Math.PI*2), s = rand(80,260);
+    const p = new Particle(x,y,Math.cos(a)*s,Math.sin(a)*s,color,rand(0.2,0.5),rand(1,3));
+    p.g = 0.2; particles.push(p);
+  }
+}
+
+/* ============================================================
+   WRECKING BALL (verlet pendulum) and BOMBS
+   ============================================================ */
+const ball = {
+  active:false, anchorX:0, anchorY:0, x:0, y:0, px:0, py:0,
+  r:26, len:180, held:false, swungThisGrab:false,
+};
+let bombs = [];     // {x,y,vx,vy,r,fuse}
+let cutLine = null; // {x1,y1,x2,y2} while cutting
+
+/* ============================================================
+   LEVELS
+   ============================================================ */
+function makeWall(ox, baseY, cols, rows, cw, ch, mat, gap=1){
+  const out=[];
+  for(let r=0;r<rows;r++)
+    for(let c=0;c<cols;c++)
+      out.push(new Block(ox + c*(cw+gap), baseY - (r+1)*(ch+gap), cw, ch, mat));
+  return out;
+}
+
+const LEVELS = [
+  // L1: simple wood tower
+  (gy)=>{
+    const b=[];
+    const ox = W*0.30;
+    b.push(...makeWall(ox, gy, 4, 6, 46, 30, MATS.wood));
+    b.push(new Block(ox-10, gy-7*31-26, 4*47, 26, MATS.goal));
+    return {blocks:b, target:0.7, name:'WOODEN TOWER'};
+  },
+  // L2: brick house with glass windows
+  (gy)=>{
+    const b=[];
+    const ox = W*0.28, cw=44, ch=30;
+    b.push(...makeWall(ox, gy, 6, 4, cw, ch, MATS.brick));
+    // windows (glass) replace some
+    for(const k of b){ /* keep */ }
+    // roof
+    b.push(...makeWall(ox+cw, gy-4*31, 4, 1, cw, 26, MATS.goal));
+    // glass strip
+    b.push(...makeWall(ox, gy-2*31, 6, 1, cw, ch, MATS.glass));
+    return {blocks:b, target:0.65, name:'BRICK HOUSE'};
+  },
+  // L3: two stone pillars + metal beam
+  (gy)=>{
+    const b=[];
+    const ox = W*0.26;
+    b.push(...makeWall(ox, gy, 2, 7, 40, 32, MATS.stone));
+    b.push(...makeWall(ox+W*0.22, gy, 2, 7, 40, 32, MATS.stone));
+    b.push(new Block(ox-6, gy-8*33, W*0.22+92, 28, MATS.metal));
+    b.push(...makeWall(ox+W*0.10, gy-8*33-30, 3, 2, 44, 30, MATS.goal));
+    return {blocks:b, target:0.6, name:'THE BRIDGE'};
+  },
+  // L4: big mixed skyscraper
+  (gy)=>{
+    const b=[];
+    const ox = W*0.30, cw=42, ch=28;
+    b.push(...makeWall(ox, gy, 5, 4, cw, ch, MATS.stone));
+    b.push(...makeWall(ox, gy-4*29, 5, 4, cw, ch, MATS.brick));
+    b.push(...makeWall(ox, gy-8*29, 5, 1, cw, ch, MATS.glass));
+    b.push(...makeWall(ox, gy-9*29, 5, 3, cw, ch, MATS.wood));
+    b.push(...makeWall(ox+cw, gy-12*29, 3, 1, cw, 26, MATS.goal));
+    return {blocks:b, target:0.6, name:'SKYSCRAPER'};
+  },
+  // L5: fortress, metal core
+  (gy)=>{
+    const b=[];
+    const ox = W*0.24, cw=42, ch=30;
+    b.push(...makeWall(ox, gy, 8, 3, cw, ch, MATS.brick));
+    b.push(...makeWall(ox, gy-3*31, 8, 1, cw, ch, MATS.metal));
+    b.push(...makeWall(ox+cw, gy-4*31, 6, 4, cw, ch, MATS.stone));
+    b.push(...makeWall(ox+3*cw, gy-8*31, 2, 3, cw, ch, MATS.goal));
+    return {blocks:b, target:0.55, name:'THE FORTRESS'};
+  },
+];
+
+let levelIndex = 0;
+let levelDef = null;
+let levelStartTime = 0;
+let toolsUsed = 0;
+let state = 'menu'; // menu | play | win | pause | end
+let totalStars = 0;
+let starsByLevel = {};
+
+/* ---------- Tools ---------- */
+const TOOLS = [
+  {id:'ball', ic:'🔨', name:'WRECK'},
+  {id:'bomb', ic:'💣', name:'BOMB'},
+  {id:'cut',  ic:'✂️', name:'CUT'},
+];
+let currentTool = 'ball';
+
+function buildToolDock(){
+  const dock = document.getElementById('tools');
+  dock.innerHTML = '';
+  for(const t of TOOLS){
+    const el = document.createElement('div');
+    el.className = 'tool' + (t.id===currentTool?' active':'');
+    el.dataset.id = t.id;
+    el.innerHTML = `<span class="ic">${t.ic}</span>${t.name}`;
+    el.addEventListener('pointerdown',(e)=>{ e.stopPropagation(); selectTool(t.id); });
+    dock.appendChild(el);
+  }
+}
+function selectTool(id){
+  audioInit();
+  currentTool = id;
+  ball.active=false; ball.held=false;
+  document.querySelectorAll('.tool').forEach(el=>{
+    el.classList.toggle('active', el.dataset.id===id);
+  });
+  beep(440,0.05,'sine',0.05);
+}
+
+/* ============================================================
+   LEVEL LOADING
+   ============================================================ */
+function loadLevel(i){
+  levelIndex = clamp(i,0,LEVELS.length-1);
+  groundY = H - Math.max(70, H*0.12);
+  levelDef = LEVELS[levelIndex](groundY);
+  blocks = levelDef.blocks;
+  particles = [];
+  bombs = [];
+  ball.active=false; ball.held=false;
+  totalSupport = 0;
+  for(const b of blocks){ if(b.support) totalSupport += b.mass; }
+  demolished = 0;
+  toolsUsed = 0;
+  levelStartTime = performance.now();
+  currentTool = 'ball';
+  buildToolDock();
+  document.getElementById('lvlInfo').textContent = 'LVL '+(levelIndex+1)+' · '+levelDef.name;
+  updateProgress();
+  state='play';
+}
+
+function demolishedRatio(){
+  return totalSupport>0 ? clamp(demolished/(totalSupport*levelDef.target),0,1) : 0;
+}
+function updateProgress(){
+  const r = demolishedRatio();
+  document.getElementById('progressFill').style.width = (r*100).toFixed(0)+'%';
+  document.getElementById('progressTxt').textContent = 'DEMOLISHED '+(r*100).toFixed(0)+'%';
+}
+
+/* ============================================================
+   DAMAGE & DESTRUCTION
+   ============================================================ */
+function damageBlock(b, dmg, hitx, hity){
+  if(b.dead) return;
+  b.hp -= dmg;
+  b.flash = 1;
+  if(b.mat.name==='glass'){ if(Math.random()<0.5) beep(rand(1200,2000),0.05,'triangle',0.05); }
+  if(b.hp<=0){
+    b.dead = true;
+    if(b.support) demolished += b.mass;
+    spawnDebris(b.cx,b.cy,b.mat.color, 10, 120);
+    if(b.mat.name==='glass'){ spawnSpark(b.cx,b.cy,14,'#dff6ff'); beep(1800,0.08,'triangle',0.06); }
+    else { noiseBurst(0.12,0.10); }
+    updateProgress();
+    checkWin();
+  } else {
+    spawnDebris(hitx||b.cx, hity||b.cy, b.mat.color, 3, 40);
+  }
+}
+
+function explode(x,y,radius,power){
+  noiseBurst(0.3,0.22);
+  spawnSpark(x,y,30,'#ffd35d');
+  spawnDebris(x,y,'#ff8a3c',24,200);
+  shake = Math.min(shake+18,28);
+  for(const b of blocks){
+    if(b.dead) continue;
+    const d = dist(x,y,b.cx,b.cy);
+    if(d < radius){
+      const f = (1 - d/radius);
+      damageBlock(b, power*f, b.cx, b.cy);
+      const ang = Math.atan2(b.cy-y, b.cx-x);
+      const imp = f*power*2.2;
+      b.vx += Math.cos(ang)*imp;
+      b.vy += Math.sin(ang)*imp - 40;
+      b.va += rand(-3,3)*f;
+      b.settled=false;
+    }
+  }
+}
+
+/* ============================================================
+   PHYSICS STEP
+   ============================================================ */
+function blocksOverlap(a,b){
+  return a.x < b.x+b.w && a.x+a.w > b.x && a.y < b.y+b.h && a.y+a.h > b.y;
+}
+
+function physics(dt){
+  // integrate blocks
+  for(const b of blocks){
+    if(b.dead) continue;
+    if(b.settled){ b.flash*=0.85; continue; }
+    b.vy += GRAV*dt;
+    b.x += b.vx*dt;
+    b.y += b.vy*dt;
+    b.ang += b.va*dt;
+    b.va *= 0.98;
+    b.flash *= 0.85;
+
+    // ground
+    if(b.y + b.h > groundY){
+      b.y = groundY - b.h;
+      if(b.vy > 250){ // impact damage on hard landing
+        if(Math.abs(b.vy)>650){ damageBlock(b, b.vy*0.02, b.cx, b.y+b.h); }
+        spawnDebris(b.cx, b.y+b.h, b.mat.color, 2, 20);
+      }
+      b.vy = 0;
+      b.vx *= GROUND_FRICTION;
+      b.va *= 0.6;
+      b.onGround = true;
+    } else { b.onGround = false; }
+  }
+
+  // resolve block-block (a few iterations, vertical stacking)
+  for(let iter=0; iter<3; iter++){
+    for(let i=0;i<blocks.length;i++){
+      const a = blocks[i]; if(a.dead) continue;
+      for(let j=i+1;j<blocks.length;j++){
+        const b = blocks[j]; if(b.dead) continue;
+        if(!blocksOverlap(a,b)) continue;
+        // minimal translation on smallest axis
+        const ox1 = (a.x+a.w) - b.x;     // a right into b left
+        const ox2 = (b.x+b.w) - a.x;     // b right into a left
+        const oy1 = (a.y+a.h) - b.y;     // a bottom into b top
+        const oy2 = (b.y+b.h) - a.y;     // b bottom into a top
+        const ox = Math.min(ox1,ox2);
+        const oy = Math.min(oy1,oy2);
+        if(oy < ox){
+          // vertical separation
+          const sign = (oy1 < oy2) ? 1 : -1; // 1: a above b
+          const push = oy/2;
+          if(sign>0){ a.y -= push; b.y += push;
+            if(a.vy>0) a.vy*=0.2; if(b.vy<0) b.vy*=0.2;
+          } else { a.y += push; b.y -= push;
+            if(b.vy>0) b.vy*=0.2; if(a.vy<0) a.vy*=0.2;
+          }
+          // momentum transfer downward
+          const rel = Math.abs(a.vy-b.vy);
+          if(rel>500){ damageBlock(rel>a.vy?b:a, rel*0.012); }
+        } else {
+          const sign = (ox1 < ox2) ? 1 : -1;
+          const push = ox/2;
+          if(sign>0){ a.x -= push; b.x += push; }
+          else { a.x += push; b.x -= push; }
+          a.vx*=0.5; b.vx*=0.5;
+        }
+      }
+    }
+  }
+
+  // settling: low velocity & supported
+  for(const b of blocks){
+    if(b.dead||b.settled) continue;
+    const slow = Math.abs(b.vx)<6 && Math.abs(b.vy)<6 && Math.abs(b.va)<0.05;
+    if(slow){
+      // supported by ground or another settled/onground block below?
+      let supported = b.onGround;
+      if(!supported){
+        for(const o of blocks){
+          if(o===b||o.dead) continue;
+          if(o.x < b.x+b.w && o.x+o.w > b.x && Math.abs((o.y) - (b.y+b.h))<3){ supported=true; break; }
+        }
+      }
+      if(supported){ b.settled=true; b.vx=0; b.vy=0; b.va=0; }
+    }
+  }
+
+  // wrecking ball verlet
+  if(ball.active && !ball.held){
+    const vx = (ball.x-ball.px), vy=(ball.y-ball.py);
+    ball.px = ball.x; ball.py = ball.y;
+    ball.x += vx*0.992;
+    ball.y += vy*0.992 + GRAV*dt*dt;
+    // constrain to anchor length
+    const dx = ball.x-ball.anchorX, dy=ball.y-ball.anchorY;
+    const d = Math.hypot(dx,dy)||1;
+    const diff = (d-ball.len)/d;
+    ball.x -= dx*diff; ball.y -= dy*diff;
+    // ground collide
+    if(ball.y+ball.r>groundY){ ball.y=groundY-ball.r; ball.py=ball.y+(ball.y-ball.py)*0.4; }
+    ballCollide(vx,vy);
+  }
+
+  // bombs
+  for(const bo of bombs){
+    bo.vy += GRAV*dt;
+    bo.x += bo.vx*dt; bo.y += bo.vy*dt;
+    bo.fuse -= dt;
+    let hit=false;
+    if(bo.y+bo.r>groundY){ bo.y=groundY-bo.r; bo.vy*=-0.4; bo.vx*=0.7; }
+    for(const b of blocks){
+      if(b.dead) continue;
+      if(bo.x>b.x-bo.r && bo.x<b.x+b.w+bo.r && bo.y>b.y-bo.r && bo.y<b.y+b.h+bo.r){ hit=true; break; }
+    }
+    if(bo.fuse<=0 || (hit && bo.fuse<0.9)){
+      explode(bo.x,bo.y, 130, 90);
+      bo.done=true;
+    }
+  }
+  bombs = bombs.filter(b=>!b.done);
+
+  // particles
+  for(const p of particles){
+    p.vy += GRAV*0.6*p.g*dt;
+    p.x += p.vx*dt; p.y += p.vy*dt;
+    if(p.y>groundY){ p.y=groundY; p.vy*=-0.4; p.vx*=0.7; }
+    p.life -= dt;
+  }
+  particles = particles.filter(p=>p.life>0);
+
+  if(shake>0) shake *= 0.86;
+}
+
+function ballCollide(vx,vy){
+  const speed = Math.hypot(vx,vy);
+  for(const b of blocks){
+    if(b.dead) continue;
+    // circle vs aabb
+    const cx = clamp(ball.x, b.x, b.x+b.w);
+    const cy = clamp(ball.y, b.y, b.y+b.h);
+    const d = dist(ball.x,ball.y,cx,cy);
+    if(d < ball.r){
+      const dmg = clamp(speed*0.55, 6, 90);
+      damageBlock(b, dmg, cx, cy);
+      // push block
+      const ang = Math.atan2(b.cy-ball.y, b.cx-ball.x);
+      b.vx += Math.cos(ang)*speed*0.4 + vx*0.3;
+      b.vy += Math.sin(ang)*speed*0.3;
+      b.va += rand(-2,2);
+      b.settled=false;
+      // bounce ball a bit
+      const nx=(ball.x-cx)/(d||1), ny=(ball.y-cy)/(d||1);
+      ball.x = cx + nx*ball.r; ball.y = cy + ny*ball.r;
+      ball.px = ball.x - vx*0.3; ball.py = ball.y - vy*0.3;
+      if(speed>120){ noiseBurst(0.1,0.12); shake=Math.min(shake+speed*0.03,20); }
+    }
+  }
+}
+
+/* ---------- Cutting ---------- */
+function applyCut(x1,y1,x2,y2){
+  let cutAny=false;
+  for(const b of blocks){
+    if(b.dead || !b.mat.cuttable) continue;
+    if(segIntersectsRect(x1,y1,x2,y2,b)){
+      damageBlock(b, 9999, b.cx, b.cy); // sliced clean through
+      b.dead=true;
+      cutAny=true;
+    }
+  }
+  if(cutAny){ beep(1500,0.08,'sawtooth',0.05); }
+}
+function segIntersectsRect(x1,y1,x2,y2,b){
+  // quick: any endpoint inside, or seg crosses any edge
+  if(x1>=b.x&&x1<=b.x+b.w&&y1>=b.y&&y1<=b.y+b.h) return true;
+  if(x2>=b.x&&x2<=b.x+b.w&&y2>=b.y&&y2<=b.y+b.h) return true;
+  const edges=[[b.x,b.y,b.x+b.w,b.y],[b.x+b.w,b.y,b.x+b.w,b.y+b.h],
+               [b.x+b.w,b.y+b.h,b.x,b.y+b.h],[b.x,b.y+b.h,b.x,b.y]];
+  for(const e of edges){ if(segSeg(x1,y1,x2,y2,e[0],e[1],e[2],e[3])) return true; }
+  return false;
+}
+function segSeg(a,b,c,d,p,q,r,s){
+  const d1=(r-p)*(b-q)-(s-q)*(a-p);
+  const d2=(r-p)*(d-q)-(s-q)*(c-p);
+  const d3=(c-a)*(q-b)-(d-b)*(p-a);
+  const d4=(c-a)*(s-b)-(d-b)*(r-a);
+  return ((d1>0&&d2<0)||(d1<0&&d2>0))&&((d3>0&&d4<0)||(d3<0&&d4>0));
+}
+
+/* ============================================================
+   WIN CHECK
+   ============================================================ */
+let winLockout=false;
+function checkWin(){
+  if(state!=='play' || winLockout) return;
+  if(demolished >= totalSupport*levelDef.target){
+    winLockout=true;
+    setTimeout(()=>{ winLockout=false; doWin(); }, 700);
+  }
+}
+function doWin(){
+  if(state!=='play') return;
+  state='win';
+  const time = (performance.now()-levelStartTime)/1000;
+  let stars=1;
+  if(time<35 && toolsUsed<=14) stars=2;
+  if(time<22 && toolsUsed<=9) stars=3;
+  const prev = starsByLevel[levelIndex]||0;
+  if(stars>prev){ totalStars += (stars-prev); starsByLevel[levelIndex]=stars; }
+  document.getElementById('winStars').textContent = '★ '.repeat(stars).trim() + ' ☆'.repeat(3-stars).trim();
+  document.getElementById('winStars').innerHTML = '<span style="color:#ffd35d">'+'★'.repeat(stars)+'</span><span style="color:#ffffff33">'+'★'.repeat(3-stars)+'</span>';
+  document.getElementById('winStats').textContent = `Time ${time.toFixed(1)}s · ${toolsUsed} hits used`;
+  document.getElementById('nextBtn').textContent = (levelIndex>=LEVELS.length-1)?'FINISH':'NEXT LEVEL';
+  show('winScreen');
+  for(let i=0;i<5;i++) setTimeout(()=>beep(440+i*120,0.12,'triangle',0.06), i*90);
+}
+
+/* ============================================================
+   RENDER
+   ============================================================ */
+function drawBackground(){
+  const g = ctx.createLinearGradient(0,0,0,H);
+  g.addColorStop(0,'#23264a'); g.addColorStop(0.6,'#3a2f55'); g.addColorStop(1,'#5a3f57');
+  ctx.fillStyle=g; ctx.fillRect(0,0,W,H);
+  // sun
+  ctx.fillStyle='#ffb15d33';
+  ctx.beginPath(); ctx.arc(W*0.8,H*0.28,90,0,Math.PI*2); ctx.fill();
+  // distant skyline silhouette
+  ctx.fillStyle='#1e1b3a';
+  const bh=[0.5,0.7,0.55,0.8,0.62,0.9,0.66];
+  let x=0; const bw=W/6;
+  for(let i=0;i<7;i++){
+    const h=(groundY)* (0.55+0.12*Math.sin(i*1.7));
+    ctx.fillRect(x, groundY-h*0.5, bw*0.9, h*0.5);
+    x+=bw;
+  }
+}
+function drawGround(){
+  ctx.fillStyle='#2c2433';
+  ctx.fillRect(0,groundY,W,H-groundY);
+  ctx.fillStyle='#3a3142';
+  for(let x=0;x<W;x+=34){ ctx.fillRect(x,groundY,30,6); }
+  ctx.strokeStyle='#ffd35d22'; ctx.lineWidth=3;
+  ctx.beginPath(); ctx.moveTo(0,groundY); ctx.lineTo(W,groundY); ctx.stroke();
+}
+function roundRect(x,y,w,h,r){
+  r=Math.min(r,w/2,h/2);
+  ctx.beginPath();
+  ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r);
+  ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath();
+}
+function drawBlock(b){
+  const dmg = 1 - b.hp/b.maxHp;
+  ctx.save();
+  ctx.translate(b.cx,b.cy);
+  if(Math.abs(b.ang)>0.001) ctx.rotate(b.ang);
+  const x=-b.w/2,y=-b.h/2;
+  // body
+  ctx.fillStyle = b.mat.color;
+  roundRect(x,y,b.w,b.h,4); ctx.fill();
+  // shading
+  const g=ctx.createLinearGradient(x,y,x,y+b.h);
+  g.addColorStop(0,'#ffffff22'); g.addColorStop(0.5,'#00000000'); g.addColorStop(1,'#00000044');
+  ctx.fillStyle=g; roundRect(x,y,b.w,b.h,4); ctx.fill();
+  // edge
+  ctx.strokeStyle=b.mat.edge; ctx.lineWidth=2; roundRect(x,y,b.w,b.h,4); ctx.stroke();
+  // material detail
+  if(b.mat.name==='brick'){
+    ctx.strokeStyle='#00000033'; ctx.lineWidth=1.4;
+    ctx.beginPath(); ctx.moveTo(x,y+b.h/2); ctx.lineTo(x+b.w,y+b.h/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+b.w/2,y); ctx.lineTo(x+b.w/2,y+b.h/2); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x+b.w/4,y+b.h/2); ctx.lineTo(x+b.w/4,y+b.h); ctx.stroke();
+  } else if(b.mat.name==='glass'){
+    ctx.strokeStyle='#ffffff77'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(x+4,y+4); ctx.lineTo(x+b.w*0.5,y+b.h*0.5); ctx.stroke();
+  } else if(b.mat.name==='goal'){
+    ctx.fillStyle='#fff7'; ctx.font='bold 14px sans-serif'; ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText('★', 0, 0);
+  } else if(b.mat.name==='wood'){
+    ctx.strokeStyle='#00000022'; ctx.lineWidth=1;
+    ctx.beginPath(); ctx.moveTo(x,y+b.h*0.35); ctx.lineTo(x+b.w,y+b.h*0.35); ctx.stroke();
+    ctx.beginPath(); ctx.moveTo(x,y+b.h*0.7); ctx.lineTo(x+b.w,y+b.h*0.7); ctx.stroke();
+  }
+  // cracks when damaged
+  if(dmg>0.25){
+    ctx.strokeStyle='#00000066'; ctx.lineWidth=1.4;
+    ctx.beginPath();
+    ctx.moveTo(x+b.w*0.2,y); ctx.lineTo(x+b.w*0.4,y+b.h*0.5); ctx.lineTo(x+b.w*0.25,y+b.h);
+    if(dmg>0.6){ ctx.moveTo(x+b.w*0.7,y); ctx.lineTo(x+b.w*0.55,y+b.h*0.6); ctx.lineTo(x+b.w*0.8,y+b.h); }
+    ctx.stroke();
+  }
+  // hit flash
+  if(b.flash>0.05){ ctx.fillStyle='rgba(255,255,255,'+(b.flash*0.6)+')'; roundRect(x,y,b.w,b.h,4); ctx.fill(); }
+  ctx.restore();
+}
+function drawBall(){
+  if(!ball.active) return;
+  // chain
+  ctx.strokeStyle='#3a3142'; ctx.lineWidth=6;
+  ctx.beginPath(); ctx.moveTo(ball.anchorX,ball.anchorY); ctx.lineTo(ball.x,ball.y); ctx.stroke();
+  ctx.strokeStyle='#5d6788'; ctx.lineWidth=2; ctx.setLineDash([6,6]);
+  ctx.beginPath(); ctx.moveTo(ball.anchorX,ball.anchorY); ctx.lineTo(ball.x,ball.y); ctx.stroke();
+  ctx.setLineDash([]);
+  // anchor
+  ctx.fillStyle='#9aa6c2'; ctx.beginPath(); ctx.arc(ball.anchorX,ball.anchorY,8,0,Math.PI*2); ctx.fill();
+  // ball
+  const g=ctx.createRadialGradient(ball.x-8,ball.y-8,4,ball.x,ball.y,ball.r);
+  g.addColorStop(0,'#c7cee0'); g.addColorStop(0.5,'#7a8398'); g.addColorStop(1,'#3a4154');
+  ctx.fillStyle=g; ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.r,0,Math.PI*2); ctx.fill();
+  ctx.strokeStyle='#2a2f3c'; ctx.lineWidth=3; ctx.stroke();
+  // spikes
+  ctx.fillStyle='#5d6788';
+  for(let i=0;i<8;i++){
+    const a=i/8*Math.PI*2;
+    ctx.beginPath();
+    ctx.moveTo(ball.x+Math.cos(a)*ball.r, ball.y+Math.sin(a)*ball.r);
+    ctx.lineTo(ball.x+Math.cos(a)*(ball.r+7), ball.y+Math.sin(a)*(ball.r+7));
+    ctx.lineTo(ball.x+Math.cos(a+0.3)*ball.r, ball.y+Math.sin(a+0.3)*ball.r);
+    ctx.fill();
+  }
+}
+function drawBombs(){
+  for(const bo of bombs){
+    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(bo.x,bo.y,bo.r,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#444'; ctx.beginPath(); ctx.arc(bo.x-3,bo.y-3,bo.r*0.4,0,Math.PI*2); ctx.fill();
+    // fuse spark
+    const fl = bo.fuse%0.2<0.1;
+    ctx.fillStyle = fl?'#ffd35d':'#ff5d3c';
+    ctx.beginPath(); ctx.arc(bo.x, bo.y-bo.r-3, 3, 0,Math.PI*2); ctx.fill();
+  }
+}
+function drawParticles(){
+  for(const p of particles){
+    ctx.globalAlpha = clamp(p.life/p.max,0,1);
+    ctx.fillStyle=p.color;
+    ctx.fillRect(p.x-p.size/2,p.y-p.size/2,p.size,p.size);
+  }
+  ctx.globalAlpha=1;
+}
+function drawAim(){
+  // aiming preview for bomb / cut while dragging
+  if(drag.active && currentTool==='bomb'){
+    const power = clamp(dist(drag.sx,drag.sy,drag.x,drag.y),0,200);
+    const ang = Math.atan2(drag.sy-drag.y, drag.sx-drag.x);
+    ctx.strokeStyle='#ffd35d88'; ctx.lineWidth=3; ctx.setLineDash([6,8]);
+    let px=drag.sx, py=drag.sy, vx=Math.cos(ang)*power*5, vy=Math.sin(ang)*power*5;
+    ctx.beginPath(); ctx.moveTo(px,py);
+    for(let i=0;i<22;i++){ vy+=GRAV*0.016; px+=vx*0.016; py+=vy*0.016; ctx.lineTo(px,py); if(py>groundY)break; }
+    ctx.stroke(); ctx.setLineDash([]);
+    ctx.fillStyle='#222'; ctx.beginPath(); ctx.arc(drag.sx,drag.sy,12,0,Math.PI*2); ctx.fill();
+  }
+  if(cutLine && currentTool==='cut'){
+    ctx.strokeStyle='#ff5d5d'; ctx.lineWidth=3; ctx.setLineDash([4,6]);
+    ctx.beginPath(); ctx.moveTo(cutLine.x1,cutLine.y1); ctx.lineTo(cutLine.x2,cutLine.y2); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+  // ball drag indicator
+  if(drag.active && currentTool==='ball' && ball.held){
+    ctx.strokeStyle='#ffffff44'; ctx.lineWidth=2; ctx.setLineDash([4,4]);
+    ctx.beginPath(); ctx.moveTo(ball.anchorX,ball.anchorY); ctx.lineTo(ball.x,ball.y); ctx.stroke();
+    ctx.setLineDash([]);
+  }
+}
+
+function render(){
+  ctx.save();
+  if(shake>0.5){ ctx.translate(rand(-shake,shake),rand(-shake,shake)); }
+  drawBackground();
+  drawGround();
+  for(const b of blocks){ if(!b.dead) drawBlock(b); }
+  drawBombs();
+  drawBall();
+  drawParticles();
+  drawAim();
+  ctx.restore();
+}
+
+/* ============================================================
+   INPUT
+   ============================================================ */
+const drag = {active:false, sx:0, sy:0, x:0, y:0, id:null};
+
+function getPos(e){
+  const t = e.touches? e.touches[0] : e;
+  return {x:t.clientX, y:t.clientY};
+}
+
+canvas.addEventListener('pointerdown', (e)=>{
+  if(state!=='play') return;
+  audioInit();
+  const p=getPos(e);
+  drag.active=true; drag.sx=p.x; drag.sy=p.y; drag.x=p.x; drag.y=p.y; drag.id=e.pointerId;
+  canvas.setPointerCapture(e.pointerId);
+
+  if(currentTool==='ball'){
+    // place / grab ball
+    if(!ball.active){
+      ball.active=true;
+      ball.anchorX = clamp(p.x, 60, W-90);
+      ball.anchorY = clamp(p.y - ball.len*0.4, 60, groundY-ball.len-20);
+      ball.x=p.x; ball.y=p.y; ball.px=p.x; ball.py=p.y;
+    }
+    // grab if near ball
+    if(dist(p.x,p.y,ball.x,ball.y) < ball.r+50){
+      ball.held=true; ball.swungThisGrab=false;
+    } else {
+      // reposition anchor to tapped spot
+      ball.anchorX = clamp(p.x,60,W-90);
+      ball.anchorY = clamp(p.y-ball.len, 50, groundY-60);
+      ball.held=true;
+    }
+  } else if(currentTool==='cut'){
+    cutLine={x1:p.x,y1:p.y,x2:p.x,y2:p.y};
+  }
+});
+
+canvas.addEventListener('pointermove',(e)=>{
+  if(!drag.active || e.pointerId!==drag.id) return;
+  const p=getPos(e);
+  drag.x=p.x; drag.y=p.y;
+  if(currentTool==='ball' && ball.held){
+    // move ball, keep within chain length from anchor (drag to wind up)
+    let dx=p.x-ball.anchorX, dy=p.y-ball.anchorY;
+    const d=Math.hypot(dx,dy)||1;
+    const L=Math.min(d, ball.len);
+    ball.x=ball.anchorX+dx/d*L; ball.y=ball.anchorY+dy/d*L;
+    ball.px=ball.x; ball.py=ball.y; // no momentum while held
+  } else if(currentTool==='cut' && cutLine){
+    cutLine.x2=p.x; cutLine.y2=p.y;
+  }
+});
+
+function endDrag(e){
+  if(!drag.active) return;
+  const p={x:drag.x,y:drag.y};
+  if(currentTool==='ball' && ball.held){
+    // release: impart velocity from drag delta
+    ball.held=false;
+    const vx=(drag.x-drag.sx), vy=(drag.y-drag.sy);
+    ball.px = ball.x - clamp(vx,-60,60)*0.9 - 4;
+    ball.py = ball.y - clamp(vy,-60,60)*0.9;
+    toolsUsed++;
+    beep(160,0.1,'sine',0.05);
+  } else if(currentTool==='bomb'){
+    const power=clamp(dist(drag.sx,drag.sy,drag.x,drag.y),10,200);
+    const ang=Math.atan2(drag.sy-drag.y, drag.sx-drag.x);
+    bombs.push({x:drag.sx,y:drag.sy,vx:Math.cos(ang)*power*5,vy:Math.sin(ang)*power*5,r:11,fuse:2.2});
+    toolsUsed++;
+    beep(300,0.08,'square',0.05);
+  } else if(currentTool==='cut' && cutLine){
+    if(dist(cutLine.x1,cutLine.y1,cutLine.x2,cutLine.y2)>14){
+      applyCut(cutLine.x1,cutLine.y1,cutLine.x2,cutLine.y2);
+      toolsUsed++;
+    }
+    cutLine=null;
+  }
+  drag.active=false; drag.id=null;
+}
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+
+/* ============================================================
+   UI WIRING
+   ============================================================ */
+function show(id){
+  document.querySelectorAll('.overlay').forEach(o=>o.classList.remove('show'));
+  if(id) document.getElementById(id).classList.add('show');
+}
+document.getElementById('startBtn').onclick = ()=>{ audioInit(); show(null); loadLevel(0); };
+document.getElementById('replayBtn').onclick = ()=>{ show(null); loadLevel(levelIndex); };
+document.getElementById('nextBtn').onclick = ()=>{
+  if(levelIndex>=LEVELS.length-1){ showEnd(); }
+  else { show(null); loadLevel(levelIndex+1); }
+};
+document.getElementById('pauseBtn').onclick = ()=>{
+  if(state==='play'){ state='pause'; show('pauseScreen'); }
+};
+document.getElementById('resumeBtn').onclick = ()=>{ if(state==='pause'){ state='play'; show(null); levelStartTime += 0; } };
+document.getElementById('restartBtn').onclick = ()=>{ show(null); loadLevel(levelIndex); };
+document.getElementById('endBtn').onclick = ()=>{ totalStars=0; starsByLevel={}; show(null); loadLevel(0); };
+function showEnd(){
+  state='end';
+  document.getElementById('endStars').innerHTML='<span style="color:#ffd35d">'+'★'.repeat(totalStars)+'</span>';
+  document.getElementById('endStats').textContent=`You demolished all ${LEVELS.length} structures and earned ${totalStars} of ${LEVELS.length*3} stars.`;
+  show('endScreen');
+}
+
+/* ============================================================
+   MAIN LOOP
+   ============================================================ */
+let last=performance.now();
+function loop(now){
+  let dt=(now-last)/1000; last=now;
+  dt=Math.min(dt,0.033);
+  if(state==='play'){
+    // substep physics for stability
+    const steps=2;
+    for(let i=0;i<steps;i++) physics(dt/steps);
+  }
+  render();
+  requestAnimationFrame(loop);
+}
+
+resize();
+buildToolDock();
+requestAnimationFrame(loop);
+</script>
+</body>
+</html>
