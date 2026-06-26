@@ -6,9 +6,10 @@ screen for entering any amount.
 
 - Pick the foreign currency once — it is **persisted** (SharedPreferences) and
   survives redraws, app restarts and reboots.
-- Live rates from the free, key-less [Frankfurter](https://www.frankfurter.app)
-  API (European Central Bank reference rates). The last rate is cached so the
-  widget still shows a value when offline.
+- Live rates from the free, key-less [Frankfurter](https://frankfurter.dev)
+  API (`https://api.frankfurter.dev/v1/latest`, European Central Bank reference
+  rates). The fetch follows HTTP redirects, so it keeps working if the endpoint
+  moves. The last rate is cached so the widget still shows a value when offline.
 - Tap the widget body to change the currency; tap **⟳** to refresh.
 
 ## What's inside
