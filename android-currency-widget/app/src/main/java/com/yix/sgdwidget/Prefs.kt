@@ -14,6 +14,7 @@ object Prefs {
     private const val FILE = "sgd_widget_prefs"
     private const val KEY_GLOBAL_CURRENCY = "global_currency"
     private const val KEY_WIDGET_PREFIX = "widget_currency_"
+    private const val KEY_INPUT_PREFIX = "widget_input_"
     private const val KEY_RATE_PREFIX = "rate_"
     private const val KEY_RATE_TIME_PREFIX = "rate_time_"
     private const val DEFAULT_CURRENCY = "USD"
@@ -34,7 +35,18 @@ object Prefs {
     }
 
     fun clearWidget(ctx: Context, widgetId: Int) {
-        prefs(ctx).edit().remove(KEY_WIDGET_PREFIX + widgetId).apply()
+        prefs(ctx).edit()
+            .remove(KEY_WIDGET_PREFIX + widgetId)
+            .remove(KEY_INPUT_PREFIX + widgetId)
+            .apply()
+    }
+
+    /** The amount the user has keyed into a specific widget's keypad. */
+    fun getWidgetInput(ctx: Context, widgetId: Int): String =
+        prefs(ctx).getString(KEY_INPUT_PREFIX + widgetId, "") ?: ""
+
+    fun setWidgetInput(ctx: Context, widgetId: Int, value: String) {
+        prefs(ctx).edit().putString(KEY_INPUT_PREFIX + widgetId, value).apply()
     }
 
     /** App-wide default, used by the converter screen. */

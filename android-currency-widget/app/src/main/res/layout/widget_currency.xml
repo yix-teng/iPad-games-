@@ -3,84 +3,140 @@
     android:id="@+id/wBody"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
-    android:orientation="horizontal"
-    android:gravity="center_vertical"
+    android:orientation="vertical"
     android:background="@drawable/widget_background"
-    android:padding="12dp">
+    android:padding="14dp">
 
-    <TextView
-        android:id="@+id/wFlag"
-        android:layout_width="wrap_content"
-        android:layout_height="wrap_content"
-        android:textSize="26sp"
-        android:text="🇺🇸" />
-
+    <!-- Header: flag + code (tap to change currency) and refresh -->
     <LinearLayout
-        android:layout_width="0dp"
+        android:layout_width="match_parent"
         android:layout_height="wrap_content"
-        android:layout_weight="1"
-        android:orientation="vertical"
-        android:layout_marginStart="10dp">
+        android:orientation="horizontal"
+        android:gravity="center_vertical">
 
         <LinearLayout
-            android:layout_width="wrap_content"
+            android:id="@+id/wHeader"
+            android:layout_width="0dp"
             android:layout_height="wrap_content"
+            android:layout_weight="1"
             android:orientation="horizontal"
             android:gravity="center_vertical">
 
             <TextView
-                android:id="@+id/wCode"
+                android:id="@+id/wFlag"
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:text="USD"
-                android:textColor="#9FB4E0"
-                android:textStyle="bold"
-                android:textSize="13sp" />
+                android:textSize="24sp"
+                android:text="🇹🇭" />
 
-            <TextView
+            <LinearLayout
                 android:layout_width="wrap_content"
                 android:layout_height="wrap_content"
-                android:layout_marginStart="6dp"
-                android:text="→ SGD"
-                android:textColor="#6B7DA8"
-                android:textSize="11sp" />
+                android:orientation="vertical"
+                android:layout_marginStart="10dp">
+
+                <TextView
+                    android:id="@+id/wCode"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="THB → SGD"
+                    android:textColor="#9FB4E0"
+                    android:textStyle="bold"
+                    android:textSize="15sp" />
+
+                <TextView
+                    android:id="@+id/wSub"
+                    android:layout_width="wrap_content"
+                    android:layout_height="wrap_content"
+                    android:text="1 THB = 0.0389 SGD"
+                    android:textColor="#7E92BE"
+                    android:textSize="11sp" />
+            </LinearLayout>
         </LinearLayout>
 
         <TextView
-            android:id="@+id/wValue"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="S$1.35"
-            android:textColor="#FFFFFF"
-            android:textStyle="bold"
-            android:textSize="22sp"
-            android:includeFontPadding="false" />
-
-        <TextView
-            android:id="@+id/wSub"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="1 USD = 1.3500 SGD"
-            android:textColor="#8AA0CC"
-            android:textSize="10sp" />
-
-        <TextView
-            android:id="@+id/wFooter"
-            android:layout_width="wrap_content"
-            android:layout_height="wrap_content"
-            android:text="Updated --:--"
-            android:textColor="#5E6E94"
-            android:textSize="9sp" />
+            android:id="@+id/wRefresh"
+            android:layout_width="40dp"
+            android:layout_height="40dp"
+            android:gravity="center"
+            android:text="⟳"
+            android:textColor="#CFE0FF"
+            android:textSize="20sp"
+            android:background="@drawable/refresh_bg" />
     </LinearLayout>
 
+    <!-- Display: typed amount + converted result -->
     <TextView
-        android:id="@+id/wRefresh"
-        android:layout_width="36dp"
-        android:layout_height="36dp"
-        android:gravity="center"
-        android:text="⟳"
-        android:textColor="#CFE0FF"
-        android:textSize="18sp"
-        android:background="@drawable/refresh_bg" />
+        android:id="@+id/wInput"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginTop="10dp"
+        android:gravity="end"
+        android:singleLine="true"
+        android:ellipsize="start"
+        android:text="0 THB"
+        android:textColor="#FFFFFF"
+        android:textStyle="bold"
+        android:textSize="30sp" />
+
+    <TextView
+        android:id="@+id/wValue"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:singleLine="true"
+        android:ellipsize="start"
+        android:text="S$0.00"
+        android:textColor="#5DFF9A"
+        android:textStyle="bold"
+        android:textSize="22sp" />
+
+    <TextView
+        android:id="@+id/wFooter"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="end"
+        android:text="Updated --:--"
+        android:textColor="#5E6E94"
+        android:textSize="10sp" />
+
+    <!-- Keypad -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:layout_marginTop="10dp">
+        <TextView android:id="@+id/key1" style="@style/CalcKey" android:text="1" />
+        <TextView android:id="@+id/key2" style="@style/CalcKey" android:text="2" />
+        <TextView android:id="@+id/key3" style="@style/CalcKey" android:text="3" />
+        <TextView android:id="@+id/keyBack" style="@style/CalcKeyAccent" android:text="⌫" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <TextView android:id="@+id/key4" style="@style/CalcKey" android:text="4" />
+        <TextView android:id="@+id/key5" style="@style/CalcKey" android:text="5" />
+        <TextView android:id="@+id/key6" style="@style/CalcKey" android:text="6" />
+        <TextView android:id="@+id/keyClear" style="@style/CalcKeyAccent" android:text="C" />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <TextView android:id="@+id/key7" style="@style/CalcKey" android:text="7" />
+        <TextView android:id="@+id/key8" style="@style/CalcKey" android:text="8" />
+        <TextView android:id="@+id/key9" style="@style/CalcKey" android:text="9" />
+        <TextView android:id="@+id/keyDot" style="@style/CalcKeyAccent" android:text="." />
+    </LinearLayout>
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal">
+        <TextView android:id="@+id/key0" style="@style/CalcKey" android:text="0" />
+    </LinearLayout>
 
 </LinearLayout>
