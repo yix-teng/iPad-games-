@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="app_name">SGD Currency Widget</string>
+    <string name="widget_description">Convert a foreign currency to SGD</string>
+    <string name="config_title">Convert to SGD — currently %1$s</string>
+    <string name="updating">Updating rate…</string>
+    <string name="updated_at">Updated %1$s</string>
+    <string name="updated_offline">Updated %1$s (offline)</string>
+    <string name="no_rate">No rate available — check connection</string>
+</resources>

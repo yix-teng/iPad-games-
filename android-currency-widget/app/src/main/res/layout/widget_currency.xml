@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="utf-8"?>
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/wBody"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:orientation="horizontal"
+    android:gravity="center_vertical"
+    android:background="@drawable/widget_background"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/wFlag"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:textSize="26sp"
+        android:text="🇺🇸" />
+
+    <LinearLayout
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:layout_weight="1"
+        android:orientation="vertical"
+        android:layout_marginStart="10dp">
+
+        <LinearLayout
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:orientation="horizontal"
+            android:gravity="center_vertical">
+
+            <TextView
+                android:id="@+id/wCode"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="USD"
+                android:textColor="#9FB4E0"
+                android:textStyle="bold"
+                android:textSize="13sp" />
+
+            <TextView
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginStart="6dp"
+                android:text="→ SGD"
+                android:textColor="#6B7DA8"
+                android:textSize="11sp" />
+        </LinearLayout>
+
+        <TextView
+            android:id="@+id/wValue"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="S$1.35"
+            android:textColor="#FFFFFF"
+            android:textStyle="bold"
+            android:textSize="22sp"
+            android:includeFontPadding="false" />
+
+        <TextView
+            android:id="@+id/wSub"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="1 USD = 1.3500 SGD"
+            android:textColor="#8AA0CC"
+            android:textSize="10sp" />
+
+        <TextView
+            android:id="@+id/wFooter"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Updated --:--"
+            android:textColor="#5E6E94"
+            android:textSize="9sp" />
+    </LinearLayout>
+
+    <TextView
+        android:id="@+id/wRefresh"
+        android:layout_width="36dp"
+        android:layout_height="36dp"
+        android:gravity="center"
+        android:text="⟳"
+        android:textColor="#CFE0FF"
+        android:textSize="18sp"
+        android:background="@drawable/refresh_bg" />
+
+</LinearLayout>

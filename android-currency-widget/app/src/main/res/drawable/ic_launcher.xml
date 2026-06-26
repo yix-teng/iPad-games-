@@ -1,0 +1,18 @@
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="108dp"
+    android:height="108dp"
+    android:viewportWidth="108"
+    android:viewportHeight="108">
+    <!-- Rounded background -->
+    <path
+        android:pathData="M16,8 L92,8 A12,12 0 0 1 104,20 L104,88 A12,12 0 0 1 92,100 L16,100 A12,12 0 0 1 4,88 L4,20 A12,12 0 0 1 16,8 Z"
+        android:fillColor="#16233F" />
+    <!-- Top arrow pointing right (foreign -> SGD) -->
+    <path
+        android:pathData="M30,42 L66,42 L66,34 L82,48 L66,62 L66,54 L30,54 Z"
+        android:fillColor="#5DFF9A" />
+    <!-- Bottom arrow pointing left -->
+    <path
+        android:pathData="M78,66 L42,66 L42,58 L26,72 L42,86 L42,78 L78,78 Z"
+        android:fillColor="#5D8BFF" />
+</vector>
