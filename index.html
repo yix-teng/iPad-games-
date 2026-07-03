@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=5, viewport-fit=cover">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
 <meta name="theme-color" content="#0b0d17">
@@ -22,7 +22,7 @@
   *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
   html,body{margin:0;height:100%;overflow:hidden;background:var(--bg);color:var(--text);
     font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
-    -webkit-user-select:none;user-select:none;touch-action:none}
+    -webkit-user-select:none;user-select:none}
   #app{display:flex;flex-direction:column;height:100%;height:100dvh}
 
   /* Top bar */
@@ -57,7 +57,7 @@
 
   /* Progress */
   #progressWrap{padding:0 14px 8px;z-index:20}
-  #progress{height:6px;border-radius:6px;background:var(--panel2);position:relative;cursor:pointer;overflow:hidden}
+  #progress{height:6px;border-radius:6px;background:var(--panel2);position:relative;cursor:pointer;overflow:hidden;touch-action:none}
   #progressFill{position:absolute;left:0;top:0;bottom:0;width:0;
     background:linear-gradient(90deg,var(--accent),var(--accent2));border-radius:6px}
   #timeText{font-size:11px;color:var(--muted);margin-top:5px;display:flex;justify-content:space-between}
@@ -68,7 +68,7 @@
 
   /* Keyboard */
   #kbWrap{position:relative;z-index:10;background:#05060c;padding-bottom:env(safe-area-inset-bottom)}
-  #keyboard{width:100%;display:block}
+  #keyboard{width:100%;display:block;touch-action:none}
 
   /* Overlay / drop */
   #drop{position:absolute;inset:0;z-index:30;display:flex;align-items:center;justify-content:center;
