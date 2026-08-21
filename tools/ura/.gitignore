@@ -1,1 +1,5 @@
 ura_cache.json
+ura_rentals.json
+ura_rental_median.json
+__pycache__/
+*.pyc
