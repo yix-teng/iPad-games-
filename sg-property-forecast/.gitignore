@@ -1,0 +1,4 @@
+data/ura_transactions.json
+__pycache__/
+.pytest_cache/
+outputs/hedonic_test_predictions.csv
