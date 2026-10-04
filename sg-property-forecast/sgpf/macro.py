@@ -19,6 +19,7 @@ TABLES = {
         "Total Landed Properties": "pipeline_landed",
         "Total Non-Landed Properties": "pipeline_nonlanded"}),
     "population": ("d_6c26f6181f2e5dd62bf3210fa1029074", {"Total Population": "population"}),
+    "cpi": ("d_bdaff844e3ef89d39fceb962ff8f0791", {"All Items": "cpi"}),
     "rates": ("d_5fe5a4bb4a1ecc4d8a56a095832e2b24", {
         "Government Securities - 10-Year Bond Yield": "sgs_10y"}),
 }

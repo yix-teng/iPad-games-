@@ -67,9 +67,12 @@ def test_long_run_central_path_is_income_growth():
     from sgpf.data import fetch_price_index
     from sgpf.long_run import scenarios
     p0 = fetch_price_index()["All Residential"].dropna().iloc[-1]
-    sc = scenarios({"base": 0.05}, years=10)
+    sc = scenarios({"base": 0.03}, inflation=0.02, years=10)
     ten = sc[sc.years == 10].iloc[0]
-    assert np.isclose(ten.central, p0 * 1.05 ** 10)
+    assert np.isclose(ten.central, p0 * (1.03 * 1.02) ** 10)  # nominal: real growth + CPI
+    assert np.isclose(ten.real_central, p0 * 1.03 ** 10)  # today's dollars: real growth only
+    assert (sc.real_likely_lo <= sc.real_central).all()
+    assert (sc.real_central <= sc.real_likely_hi).all()
     assert (sc.wide_lo <= sc.likely_lo).all() and (sc.likely_lo <= sc.central).all()
     assert (sc.central <= sc.likely_hi).all() and (sc.likely_hi <= sc.wide_hi).all()
 
