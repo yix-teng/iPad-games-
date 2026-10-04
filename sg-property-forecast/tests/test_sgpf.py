@@ -60,3 +60,21 @@ def test_index_features_have_no_lookahead():
     f2 = make_features(s2)
     pd.testing.assert_frame_equal(f1.iloc[:-1], f2.iloc[:-1])
     assert np.isclose(make_target(s, 4).iloc[0], np.log(s.iloc[4] / s.iloc[0]))
+
+
+def test_long_run_central_path_is_income_growth():
+    """Uses the cached data in data/ (committed), so runs offline."""
+    from sgpf.data import fetch_price_index
+    from sgpf.long_run import scenarios
+    p0 = fetch_price_index()["All Residential"].dropna().iloc[-1]
+    sc = scenarios({"base": 0.05}, years=10)
+    ten = sc[sc.years == 10].iloc[0]
+    assert np.isclose(ten.central, p0 * 1.05 ** 10)
+    assert (sc.wide_lo <= sc.likely_lo).all() and (sc.likely_lo <= sc.central).all()
+    assert (sc.central <= sc.likely_hi).all() and (sc.likely_hi <= sc.wide_hi).all()
+
+
+def test_long_run_beats_flat_when_income_known():
+    from sgpf.long_run import evaluate
+    ev = evaluate(40)
+    assert ev["income_known_MAE"] < ev["flat_MAE"]
