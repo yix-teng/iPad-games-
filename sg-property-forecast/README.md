@@ -278,7 +278,7 @@ Full tables for every year: `outputs/unit_backtest_by_horizon.csv` (all start ye
 | Segment | Test sales | LightGBM typical error | 80% of actual within | Transparent typical error |
 |---|---|---|---|---|
 | Resales | 4,675 | **4.0%** | −6% to +10% | 5.8% |
-| New sales in projects already selling | 1,262 | — | — | **2.2%** |
+| New sales in projects already selling | 1,266 | — | — | **2.2%** |
 | Brand-new projects (no prior sales) | 1,796 | 32.3% (always too low) | +28% to +89% | cannot price |
 | Freehold | 1,539 | 4.5% | −9% to +10% | 5.8% |
 | Leasehold | 6,440 | 6.9% | −4% to +57% | 4.7% |
