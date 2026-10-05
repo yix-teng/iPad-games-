@@ -271,6 +271,87 @@ Full tables for every year: `outputs/unit_backtest_by_horizon.csv` (all start ye
   years (for example 32.9% vs 29.0% at 10 years). The unit forecast therefore does not apply
   it; the table above is kept for information.
 
+## Pricing paths in the unit forecast
+
+`run_unit_forecast.py` picks one of three pricing paths. ECs also get the EC age adjustment.
+Each path's 80% ranges come from its own backtest.
+
+| Path | When | Price today | Today: typical error, 80% range |
+|---|---|---|---|
+| **Resale** | Project has resales | LightGBM resale value | 4.0%, −6% to +10% (4,675 resales, Apr–Sep 2026) |
+| **Launch phase** | Project is selling new units and has no resales yet | Transparent model's new-sale price (the project's own recent launch prices) | 2.2%, −9% to +5% (1,266 new sales, Apr–Sep 2026) |
+| **Brand-new launch** | Project has no transactions. Run `python run_unit_forecast.py new "#15-03" --area 850 --postal 579837 --tenure leasehold --top 2030 [--ec]` | Comparable launches within 3 km in the last 12 months, same tenure and EC status, adjusted for floor and size (`sgpf/launch.py`). The comparables are listed in the output | 11.4%, −18% to +29% (1,551 launches since 2000) |
+
+For the launch paths, forecasts are of the **resale** value (no new-launch premium), because
+the backtests score against later resales.
+
+**EC adjustment.** An EC forecast is multiplied by the change in the EC age effect between now
+and the target year, using the transparent model's EC age table. This captures the jumps when
+the 5-year minimum occupation period ends and at 10-year privatisation. In the backtest the
+table was re-estimated at each start year from data up to then. Without the adjustment, EC
+forecasts were too low by 12–17% at 2–5 years.
+
+| EC typical error | 1 yr | 2 yr | 3 yr | 5 yr | 7 yr | 10 yr | 15 yr | 20 yr |
+|---|---|---|---|---|---|---|---|---|
+| Without adjustment | 8.6% | 13.4% | 16.6% | 20.6% | 22.2% | 20.9% | 22.2% | 41.6% |
+| **With adjustment (used)** | 8.7% | 12.4% | 14.0% | 16.8% | 20.1% | 21.3% | 23.5% | 40.3% |
+
+### Forecast error and range by path
+
+**Resale (condo/apartment)**, LightGBM valuation (start years 1997–2025):
+
+| Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
+|---|---|---|---|---|
+| 1 | 8.0% | 58% | -11% to +26% | 29 |
+| 2 | 11.2% | 46% | -16% to +33% | 28 |
+| 3 | 13.6% | 38% | -20% to +38% | 27 |
+| 5 | 19.3% | 27% | -27% to +51% | 25 |
+| 10 | 28.0% | 17% | -40% to +44% | 20 |
+| 15 | 22.8% | 22% | -43% to +46% | 15 |
+| 20 | 38.3% | 13% | -68% to +55% | 10 |
+
+**Launch phase** (bought before completion, non-EC):
+
+| Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
+|---|---|---|---|---|
+| 1 | 10.3% | 49% | -16% to +35% | 29 |
+| 2 | 10.7% | 48% | -19% to +34% | 28 |
+| 3 | 12.8% | 41% | -21% to +37% | 27 |
+| 5 | 18.9% | 29% | -29% to +45% | 25 |
+| 10 | 31.9% | 14% | -44% to +33% | 20 |
+| 15 | 24.8% | 21% | -51% to +36% | 15 |
+| 20 | 49.8% | 14% | -72% to +35% | 10 |
+
+**EC** (resale or launch phase, with EC adjustment):
+
+| Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
+|---|---|---|---|---|
+| 1 | 8.7% | 57% | -6% to +22% | 27 |
+| 2 | 12.4% | 40% | -10% to +30% | 27 |
+| 3 | 14.0% | 33% | -12% to +34% | 27 |
+| 5 | 16.8% | 26% | -21% to +41% | 25 |
+| 10 | 21.3% | 26% | -41% to +44% | 20 |
+| 15 | 23.5% | 19% | -40% to +45% | 15 |
+| 20 | 40.3% | 17% | -64% to +53% | 10 |
+
+**Brand-new launch** (priced from comparables; horizons backed by fewer than 200 launches use the
+nearest that has enough, because few units resell before completion):
+
+| Years ahead | Typical error | Within 10% | 80% of actual within | Launches |
+|---|---|---|---|---|
+| 1 (uses 3-yr) | 20.3% | 26% | -32% to +83% | 371 |
+| 2 (uses 3-yr) | 20.3% | 26% | -32% to +83% | 371 |
+| 3 | 20.3% | 26% | -32% to +83% | 371 |
+| 5 | 21.6% | 24% | -29% to +71% | 980 |
+| 10 | 26.7% | 18% | -40% to +33% | 1027 |
+| 15 | 23.3% | 23% | -41% to +44% | 767 |
+| 20 | 38.8% | 11% | -52% to +53% | 263 |
+
+EC brand-new launches use the condo launch ranges: only 5–40 EC launches per horizon could be
+tested (`outputs/launch_forecast_backtest.csv`).
+
+Worked examples of all four paths: `outputs/unit_forecast_example.txt`.
+
 ### Accuracy by segment
 
 **Valuation today** (train to 2026-03, test 2026-04..09; `outputs/unit_valuation_by_segment.csv`):
@@ -304,7 +385,7 @@ compared with its first 3 months of actual sales:
 | OCR | 370 | 9.8% | 50% | −16% to +22% |
 | EC | 55 | 7.2% | 60% | −6% to +20% |
 
-This method is not yet built into the forecast tool, which values every unit as a resale.
+The forecast tool uses this method for projects with no transactions (see Pricing paths).
 
 **Multi-year forecasts** (`outputs/unit_backtest_by_segment.csv`; scored against later resales):
 

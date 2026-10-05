@@ -1,4 +1,6 @@
-artra #12-05: 786 sqft, floor 12, leasehold (88 yrs left), building age 6 yrs, RCR, D3, 97 m to nearest MRT exit
+=== RESALE: artra #12-05
+artra #12-05: 786 sqft, floor 12, condo, leasehold (88 yrs left), building age 6 yrs, RCR, D3
+Pricing path: resale
 
 Transparent model (recent sales in this project + lookup-table adjustments):
   project premium (recent sales) + RCR market level 2026Q3                          -> $2,267 psf
@@ -18,11 +20,10 @@ LightGBM model (contribution of each factor):
   EC status                                                                 +0.1%   -> $2,340 psf
   sale type                                                                 -0.4%   -> $2,330 psf
 
-Estimate today (lightgbm): $2,330 psf x 786 sqft = S$1,830,755
-  Likely range (80%): S$1,727,738 - S$2,007,148
-  Tested on 4671 resales in 2026-04..2026-09: typical error 3.97%, 88% within 10%
+Resale value today (LightGBM): $2,330 psf x 786 sqft = S$1,830,755
+  Likely range (80%): S$1,727,738 - S$2,007,148   [typical error 4.0% on 4,671 resales, 2026-04..2026-09 test]
 
-Forecast (likely range = where 80% of actual resales landed in the 1997-2025 backtest):
+Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
           future dollars                    80% range    today's $   market  backtest: typical error, within 10%
   + 1 yr  S$   1,895,518  (S$ 1,681,514 - S$ 2,382,097)  S$1,865,851    +3.5%    8.0%, 58% (29 start years)
   + 2 yr  S$   1,971,147  (S$ 1,650,836 - S$ 2,621,232)  S$1,909,929    +7.7%   11.2%, 46% (28 start years)
@@ -31,5 +32,106 @@ Forecast (likely range = where 80% of actual resales landed in the 1997-2025 bac
   +10 yr  S$   2,817,491  (S$ 1,700,638 - S$ 4,069,866)  S$2,406,318   +53.9%   28.0%, 17% (20 start years)
   +15 yr  S$   3,522,307  (S$ 1,992,217 - S$ 5,138,342)  S$2,780,115   +92.4%   22.8%, 22% (15 start years)
   +20 yr  S$   4,403,438  (S$ 1,393,248 - S$ 6,813,880)  S$3,211,979  +140.5%   38.3%, 13% (10 start years)
+
+  Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
+
+=== LAUNCH PHASE: grand-dunman #10-05
+grand-dunman #10-05: 2,131 sqft, floor 10, condo, leasehold (95 yrs left), TOP in 1 yrs, RCR, D15
+Pricing path: launch phase
+
+Transparent model (recent sales in this project + lookup-table adjustments):
+  project premium (recent sales) + RCR market level 2026Q3                          -> $2,464 psf
+  stack #xx-05 vs project average                                          +19.4%   -> $2,943 psf
+  area: 2k-3k                                                    -21.7% vs 800-1k   -> $2,304 psf
+
+LightGBM model (contribution of each factor):
+  average condo in training data                                                    -> $1,066 psf
+  project & location                                                       +41.1%   -> $1,505 psf
+  market level now vs 1995-2026 average                                    +70.3%   -> $2,562 psf
+  floor                                                                     +0.3%   -> $2,569 psf
+  size                                                                     -10.3%   -> $2,303 psf
+  building age                                                              +4.5%   -> $2,406 psf
+  lease left                                                                +0.8%   -> $2,426 psf
+  tenure                                                                    -0.3%   -> $2,419 psf
+  EC status                                                                 +0.2%   -> $2,423 psf
+  sale type                                                                 -0.8%   -> $2,405 psf
+
+New-sale price today (this project's recent launch prices): $2,433 psf x 2,131 sqft = S$5,184,326
+  Likely range (80%): S$4,742,103 - S$5,464,280   [typical error 2.2% on new sales, Apr-Sep 2026 test]
+  Resale-equivalent value today (no new-launch premium): S$5,125,116; forecasts below are resale values.
+
+Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
+          future dollars                    80% range    today's $   market  backtest: typical error, within 10%
+  + 1 yr  S$   5,306,418  (S$ 4,483,923 - S$ 7,168,971)  S$5,223,366    +3.5%   10.3%, 49% (29 start years)
+  + 2 yr  S$   5,518,139  (S$ 4,460,312 - S$ 7,370,579)  S$5,346,761    +7.7%   10.7%, 48% (28 start years)
+  + 3 yr  S$   5,770,130  (S$ 4,532,437 - S$ 7,915,464)  S$5,503,421   +12.6%   12.8%, 41% (27 start years)
+  + 5 yr  S$   6,309,159  (S$ 4,482,026 - S$ 9,177,302)  S$5,830,646   +23.1%   18.9%, 29% (25 start years)
+  +10 yr  S$   7,887,441  (S$ 4,431,164 - S$10,502,128)  S$6,736,379   +53.9%   31.9%, 14% (20 start years)
+  +15 yr  S$   9,860,542  (S$ 4,799,126 - S$13,366,951)  S$7,782,809   +92.4%   24.8%, 21% (15 start years)
+  +20 yr  S$  12,327,229  (S$ 3,452,857 - S$16,692,300)  S$8,991,792  +140.5%   49.8%, 14% (10 start years)
+
+  Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
+
+=== EC: westwood-residences #08-12
+westwood-residences #08-12: 1,033 sqft, floor 8, EC, leasehold (87 yrs left), building age 6 yrs, OCR, D22
+Pricing path: resale
+
+Transparent model (recent sales in this project + lookup-table adjustments):
+  project premium (recent sales) + OCR market level 2026Q3                          -> $1,487 psf
+  stack #xx-12 vs project average                                           +0.6%   -> $1,496 psf
+  area: 1k-1.25k                                                  -5.4% vs 800-1k   -> $1,415 psf
+  ec_age: 3-6                                                               +0.0%   -> $1,415 psf
+
+LightGBM model (contribution of each factor):
+  average condo in training data                                                    -> $1,066 psf
+  project & location                                                       -17.4%   -> $881 psf
+  market level now vs 1995-2026 average                                    +64.1%   -> $1,445 psf
+  floor                                                                     +0.6%   -> $1,455 psf
+  size                                                                      -0.4%   -> $1,449 psf
+  building age                                                              -1.1%   -> $1,432 psf
+  lease left                                                                +2.1%   -> $1,463 psf
+  tenure                                                                    -0.2%   -> $1,461 psf
+  EC status                                                                 -1.0%   -> $1,447 psf
+  sale type                                                                 -0.3%   -> $1,442 psf
+
+Resale value today (LightGBM): $1,442 psf x 1,033 sqft = S$1,490,008
+  Likely range (80%): S$1,406,165 - S$1,633,570   [typical error 4.0% on 4,671 resales, 2026-04..2026-09 test]
+
+Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
+          future dollars                    80% range    today's $   market  EC adj  backtest: typical error, within 10%
+  + 1 yr  S$   1,565,834  (S$ 1,465,621 - S$ 1,908,595)  S$1,541,327    +3.5%   +1.5%    8.7%, 57% (27 start years)
+  + 2 yr  S$   1,628,309  (S$ 1,472,643 - S$ 2,109,963)  S$1,577,738    +7.7%   +1.5%   12.4%, 40% (27 start years)
+  + 3 yr  S$   1,702,667  (S$ 1,497,496 - S$ 2,284,469)  S$1,623,966   +12.6%   +1.5%   14.0%, 33% (27 start years)
+  + 5 yr  S$   1,869,376  (S$ 1,470,264 - S$ 2,628,903)  S$1,727,595   +23.1%   +1.9%   16.8%, 26% (25 start years)
+  +10 yr  S$   2,145,328  (S$ 1,262,955 - S$ 3,088,844)  S$1,832,248   +53.9%   -6.4%   21.3%, 26% (20 start years)
+  +15 yr  S$   2,689,939  (S$ 1,607,239 - S$ 3,892,880)  S$2,123,137   +92.4%   -6.2%   23.5%, 19% (15 start years)
+  +20 yr  S$   3,554,612  (S$ 1,276,461 - S$ 5,450,998)  S$2,592,824  +140.5%   -0.8%   40.3%, 17% (10 start years)
+
+  Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
+
+=== BRAND-NEW: postal 158736, leasehold, TOP 2030, 850 sqft
+new #15-03: 850 sqft, floor 15, condo, leasehold (99 yrs left), TOP in 3 yrs, RCR, D3
+Pricing path: brand-new launch
+
+Comparable launches (within 3 km, last 12 months, same tenure and EC status), base price after removing floor/size effects:
+  penrith                                1.1 km   465 new sales  $2,422 psf
+  promenade-peak                         1.8 km   106 new sales  $2,538 psf
+  river-green                            2.0 km    45 new sales  $2,585 psf
+  river-modern                           2.1 km   440 new sales  $2,850 psf
+  bloomsbury-residences                  2.4 km   141 new sales  $2,337 psf
+
+Launch price today (comparable launches): $2,758 psf x 850 sqft = S$2,343,879
+  Likely range (80%): S$1,921,981 - S$3,023,604   [typical error 11.4% on 1,551 launches since 2000]
+  Resale-equivalent value today (no new-launch premium): S$2,220,459; forecasts below are resale values.
+
+Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
+          future dollars                    80% range    today's $   market  backtest: typical error, within 10%
+  + 1 yr  S$   2,299,008  (S$ 1,559,417 - S$ 4,198,448)  S$2,263,026    +3.5%   20.3%, 26% (371 launches) [from 3-yr]
+  + 2 yr  S$   2,390,736  (S$ 1,621,636 - S$ 4,365,962)  S$2,316,486    +7.7%   20.3%, 26% (371 launches) [from 3-yr]
+  + 3 yr  S$   2,499,911  (S$ 1,695,690 - S$ 4,565,338)  S$2,384,359   +12.6%   20.3%, 26% (371 launches)
+  + 5 yr  S$   2,733,446  (S$ 1,937,740 - S$ 4,677,472)  S$2,526,130   +23.1%   21.6%, 24% (980 launches)
+  +10 yr  S$   3,417,237  (S$ 2,063,670 - S$ 4,536,724)  S$2,918,539   +53.9%   26.7%, 18% (1027 launches)
+  +15 yr  S$   4,272,084  (S$ 2,510,704 - S$ 6,152,655)  S$3,371,905   +92.4%   23.3%, 23% (767 launches)
+  +20 yr  S$   5,340,777  (S$ 2,577,459 - S$ 8,162,844)  S$3,895,698  +140.5%   38.8%, 11% (263 launches)
 
   Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
