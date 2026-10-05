@@ -388,6 +388,38 @@ projects are an illustration; the 1997–2025 backtest is the measure of accurac
 `outputs/holdout_test_summary.csv`; unit-level results stay in `data/propertynoob/` (not
 committed).
 
+### Out-of-sample test of the forecast bands (`run_band_test.py`)
+
+The test asks whether the **likely** band (25th–75th percentile, target 50% of outcomes) and the
+**plausible** band (10th–90th, target 80%) hold on outcomes they were not built from.
+
+| Years ahead | A: walk-forward, inside likely / plausible | A: start years with 25–75% inside likely | B: unseen projects, inside likely / plausible |
+|---|---|---|---|
+| 1 | 66% / 92% | 46% | 30% / 59% |
+| 2 | 61% / 90% | 42% | 33% / 63% |
+| 3 | 51% / 80% | 32% | 40% / 69% |
+| 5 | 48% / 73% | 33% | 54% / 85% |
+| 7 | 67% / 89% | 21% | 49% / 85% |
+| 10 | 72% / 89% | 12% | 61% / 90% |
+
+**A, walk-forward.** Bands for each start year were built only from earlier start years whose
+outcomes were known by then.
+
+* **3–5 years:** the bands are about right on average.
+* **1–2 and 7–10 years:** the bands are too wide (conservative).
+* **Within a single start year, coverage is far from the target.** All units share one market
+  path, so in a given year most outcomes land inside the band or most land outside it.
+
+**B, unseen projects.** At 2008, 2013 and 2018, each of 5 project groups was valued by LightGBM
+refitted without those projects. These forecasts were checked against the bands the tool shows.
+
+* **1–3 years:** the bands are too narrow for projects with no history. Typical error is 14–18%,
+  against about 8% for known projects.
+* **5–10 years:** the bands are about right.
+
+The tool prices projects with no transactions via comparable launches, which have their own,
+wider bands.
+
 ### Accuracy by segment
 
 **Valuation today** (train to 2026-03, test 2026-04..09; `outputs/unit_valuation_by_segment.csv`):
