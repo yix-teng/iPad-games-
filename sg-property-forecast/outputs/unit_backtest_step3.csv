@@ -1,0 +1,6 @@
+years,start_years,sales,ensemble,ensemble_macro,ensemble_macro_better_in,ensemble_macro_all_h,ensemble_macro_all_h_better_in,ensemble_macro_cool,ensemble_macro_cool_better_in,ensemble_macro_cool_all_h,ensemble_macro_cool_all_h_better_in
+1,29,365343,7.89,7.766,11/29,8.088,12/29,8.23,9/29,8.512,10/29
+2,28,239345,11.499,11.435,12/28,15.608,12/28,11.576,12/28,16.549,11/28
+3,27,231756,13.077,13.077,0/27,16.856,10/27,13.077,0/27,17.744,8/27
+4,26,224602,16.028,16.028,0/26,19.852,9/26,16.028,0/26,20.289,9/26
+5,25,214052,18.15,18.15,0/25,20.623,10/25,18.15,0/25,20.313,10/25

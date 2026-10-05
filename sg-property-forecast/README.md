@@ -257,6 +257,22 @@ Full table for every year: `outputs/unit_backtest_by_horizon.csv`.
   years (for example 32.9% vs 29.0% at 10 years). The unit forecast therefore does not apply
   it; the table above is kept for information.
 
+### Attempts to improve accuracy (none adopted)
+
+The backtest was split into two error sources. Valuation and unit-level noise account for an
+error of about 7–14% even if the market path had been known exactly. Everything above that is
+market-path error. Three improvements were then tested in sequence, each against the same
+backtest:
+
+| Step | What was tested | Result | Files |
+|---|---|---|---|
+| 1 | LightGBM valuation refitted at every start year | Same overall: 1 yr 8.0% vs 7.9%, 10 yr 28.0% vs 29.0%. Slightly better for start years 2016+ (1 yr 5.2% vs 5.8%) | `outputs/unit_backtest_step1_lightgbm.csv` |
+| 2 | Project features known at the start year: nearby new-launch supply, construction pipeline, MRT distance and upcoming stations (hand-coded opening years), en-bloc proxies, age, size, location, 3-yr momentum. Walk-forward ridge on de-meaned errors | Worse at every horizon from 2 yrs, with or without per-year effects. Each effect is under 3% per standard deviation and unstable over time | `outputs/unit_backtest_step2_*.csv`, `outputs/unit_step2_feature_effects*.csv` |
+| 3 | Leading indicators in the short-term index model: 10-yr SGS yield and its change, pipeline/stock, vacancy, plus a variant with cooling measures | Index error worse at 2–4 quarters ahead (e.g. 4 quarters: 5.7 vs 4.7 pts RMSE). Unit error 1 yr 7.8% vs 7.9% (better in 11 of 29 start years); unchanged from 3 yrs | `outputs/index_backtest_step3.csv`, `outputs/unit_backtest_step3.csv` |
+
+The adoption rule for step 3 was set before running it: adopt only if both the index backtest
+and the unit backtest at 1–3 years improved. It did not meet that rule.
+
 ### Example: Artra #12-05 (786 sqft, 12th floor, 99-yr lease from 2016, RCR)
 
 See `outputs/unit_forecast_example.txt`. Value today is **S$1.83M** (80% range S$1.73M–2.01M).
