@@ -20,7 +20,9 @@ out = Path("outputs"); out.mkdir(exist_ok=True)
 pd.set_option("display.width", 160); pd.set_option("display.max_rows", 200)
 info, tx = load()
 print(f"{len(info):,} projects, {len(tx):,} transactions collected")
-loc = location_features(geocode_postals(info.Address.map(postal_from_address).dropna()))
+postals = info.Address.map(postal_from_address)
+loc = location_features(geocode_postals(postals.dropna(),
+                                        addresses=dict(zip(postals, info.Address))))
 d = prepare(info, tx, loc)
 print(f"{len(d):,} usable sales in {d.slug.nunique():,} projects, {d.date.min():%Y-%m}"
       f" to {d.date.max():%Y-%m}")

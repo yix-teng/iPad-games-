@@ -22,17 +22,28 @@ def postal_from_address(addr: str | None) -> str | None:
     return m.group(1) if m else None
 
 
-def geocode_postals(postals, delay_s: float = 0.25) -> pd.DataFrame:
-    """Cached OneMap lookups -> DataFrame(postal, lat, lon)."""
+def _onemap(query: str):
+    r = requests.get(ONEMAP, params={"searchVal": query, "returnGeom": "Y",
+                                     "getAddrDetails": "Y", "pageNum": 1}, timeout=30)
+    res = r.json().get("results", [])
+    return [float(res[0]["LATITUDE"]), float(res[0]["LONGITUDE"])] if res else None
+
+
+def geocode_postals(postals, delay_s: float = 0.25, addresses: dict | None = None,
+                    retry_missing: bool = False) -> pd.DataFrame:
+    """Cached OneMap lookups -> DataFrame(postal, lat, lon). Postals that OneMap does not
+    know (e.g. new projects) are retried by street address when `addresses` is given."""
     cache = DATA_DIR / "geocode.json"
     known = json.loads(cache.read_text()) if cache.exists() else {}
-    todo = [p for p in sorted(set(postals)) if p and p not in known]
+    todo = [p for p in sorted(set(postals)) if p and (p not in known or
+                                                    (retry_missing and known[p] is None))]
     for i, p in enumerate(todo, 1):
         try:
-            r = requests.get(ONEMAP, params={"searchVal": p, "returnGeom": "Y",
-                                             "getAddrDetails": "Y", "pageNum": 1}, timeout=30)
-            res = r.json().get("results", [])
-            known[p] = [float(res[0]["LATITUDE"]), float(res[0]["LONGITUDE"])] if res else None
+            hit = _onemap(p)
+            if hit is None and addresses and addresses.get(p):
+                street = re.sub(r",?\s*Singapore\s+\d{6}", "", addresses[p]).strip()
+                hit = _onemap(street)
+            known[p] = hit
         except (requests.RequestException, ValueError, KeyError):
             continue
         time.sleep(delay_s)
