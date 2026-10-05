@@ -1,0 +1,11 @@
+feature,1_sd_equals,level_effect_pct
+supply_new_1km_2y,2.48,-0.51
+pipeline_units_1km,3.0,0.03
+mrt_km_asof,0.7,-0.51
+new_mrt_800m_5y,0.33,-0.23
+age,8.47,2.63
+old_freehold_lowrise,0.07,0.29
+log_units,1.29,0.63
+cbd_km,4.75,0.55
+freehold,0.49,0.48
+momentum_3y,0.1,1.07
