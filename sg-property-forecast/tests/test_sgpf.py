@@ -81,3 +81,49 @@ def test_long_run_beats_flat_when_income_known():
     from sgpf.long_run import evaluate
     ev = evaluate(40)
     assert ev["income_known_MAE"] < ev["flat_MAE"]
+
+
+def _synthetic_condo_sales(seed=0):
+    """Projects with known effects: +2% per floor band step, -10% for 1.25k-1.5k sqft."""
+    rng = np.random.default_rng(seed)
+    info, tx = [], []
+    floor_eff = {3: -0.02, 8: 0.0, 13: 0.02, 18: 0.04}
+    for i in range(40):
+        slug = f"p{i}"
+        district = rng.choice(["D9", "D15", "D19"])
+        info.append({"slug": slug, "Address": f"1 Road, Singapore {100000 + i}",
+                     "District": district, "Tenure": "Freehold", "TOP": "2010"})
+        prem = rng.normal(0, 0.2)
+        for _ in range(120):
+            day = pd.Timestamp("2015-01-01") + pd.Timedelta(days=int(rng.integers(0, 3600)))
+            fl = int(rng.choice(list(floor_eff)))
+            big = rng.random() < 0.3
+            area = 1300.0 if big else 900.0
+            lp = np.log(1500) + prem + 0.00012 * (day - pd.Timestamp("2015-01-01")).days \
+                + floor_eff[fl] + (np.log(0.9) if big else 0) + rng.normal(0, 0.02)
+            tx.append({"slug": slug, "date": day.strftime("%Y-%m-%d"), "unit": f"#{fl:02d}-0{1 + i % 5}",
+                       "area_sqft": area, "psf_sgd": float(np.exp(lp)), "property_type": "Condo",
+                       "sale_type": "resale", "units_sold": 1})
+    return pd.DataFrame(info), pd.DataFrame(tx)
+
+
+def test_unit_parsers():
+    from sgpf.unit_model import parse_floor, parse_tenure, region_of
+    assert parse_floor("#12-05") == 12 and parse_floor("#B1-02") == -1
+    assert np.isnan(parse_floor("-"))
+    kind, yrs, start = parse_tenure("99y leasehold from 15 Feb 2016")
+    assert (kind, yrs, start.year) == ("leasehold", 99.0, 2016)
+    assert parse_tenure("999y")[0] == "freehold" and parse_tenure("Freehold")[0] == "freehold"
+    assert region_of("D10") == "CCR" and region_of("D15") == "RCR" and region_of("D19") == "OCR"
+
+
+def test_transparent_model_recovers_known_effects():
+    from sgpf.unit_model import TransparentModel, prepare
+    info, tx = _synthetic_condo_sales()
+    d = prepare(info, tx)
+    A = TransparentModel().fit(d, ridge=0.01)
+    floor = A.table("floor")
+    assert abs(floor["16-20"] - 4.0) < 1.5 and abs(floor["11-15"] - 2.0) < 1.5
+    assert abs(A.table("area")["1.25k-1.5k"] - (-10.0)) < 1.5
+    pred, seen = A.predict(d.tail(200))
+    assert seen.all()

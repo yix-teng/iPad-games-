@@ -2,3 +2,7 @@ data/ura_transactions.json
 __pycache__/
 .pytest_cache/
 outputs/hedonic_test_predictions.csv
+data/propertynoob/
+data/geocode.json
+data/mrt_exits.geojson
+data/market_path_*.csv
