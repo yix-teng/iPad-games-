@@ -5,6 +5,7 @@
    Half-lives compared in a walk-forward test (bands from earlier start years only):
    none (equal weights), 10 years, 5 years. The one with coverage closest to 50% / 80% is used
    to rebuild the bands of all four pricing paths from all start years.
+   Run with --unknown-only to redo just part 2.
 2. Unknown completed projects. At 2008, 2013 and 2018, 5 project groups are valued by LightGBM
    refitted without them (as in run_band_test.py); residuals at the start (sales within 6
    months) and 1-20 years later give the bands for this path.
@@ -61,87 +62,91 @@ def band_table(df, group_col, half_life, start_col="origin"):
     return pd.DataFrame(rows).set_index("years")
 
 
-# ------------------------------------------------ residuals for each pricing path
-bt = pd.read_pickle(DP / "unit_backtest.pkl")
-top = d.groupby("slug").agg(top_year=("top_year", "first"), is_ec=("is_ec", "max"))
-bt = bt.join(top, on="slug")
-bt["avg"] = np.nan
-for y in sorted(bt.origin.unique()):
-    k = (bt.origin == y).values
-    _, avg = avg_fn(pd.Period(f"{y}Q4", "Q"))
-    bt.loc[k, "avg"] = bt.flat_gbm.values[k] + np.log(avg(bt.years.values[k]))
-bt["r"] = bt.actual - bt.avg
-resale = bt                                             # tool's resale table: all units
-launch_phase = bt[(bt.top_year > bt.origin) & (bt.is_ec == 0)]
-ec = bt[bt.is_ec == 1].copy()
-ec_adj = np.zeros(len(ec))
-for o in sorted(ec.origin.unique()):
-    m = (ec.origin == o).values
-    hist = d[d.date <= pd.Timestamp(f"{o}-12-31")]
-    if hist.is_ec.sum() < 200:
-        continue
-    Ao = TransparentModel().fit(hist)
-    age0 = (o + 1) - ec.top_year.values[m]
-    b0 = pd.cut(age0, AGE_BINS, labels=AGE_LABELS).astype(object)
-    b1 = pd.cut(age0 + ec.years.values[m], AGE_BINS, labels=AGE_LABELS).astype(object)
-    f = np.vectorize(lambda l: Ao.effect("ec_age", l))
-    ec_adj[m] = f(b1) - f(b0)
-ec["r"] = ec.actual - (ec.avg + np.nan_to_num(ec_adj))
-print("EC residuals done", flush=True)
-lb = pd.read_pickle(DP / "launch_backtest.pkl")
-lb = lb[lb.is_ec == 0].copy()
-launch = d[d.sale_type == "new"].groupby("slug").date.min()
-lb["launch_year"] = lb.group.map(launch).dt.year
-lb["r"] = np.nan
-for slug, g in lb.groupby("group"):
-    q = pd.Period(launch[slug], "Q") - 1
-    cur, avg = avg_fn(q)
-    k = (lb.group == slug).values
-    lb.loc[k, "r"] = lb.actual.values[k] - (lb.launch_plain.values[k]
-                                            - np.log(cur(lb.x.values[k]))
-                                            + np.log(avg(lb.x.values[k])))
-pickle.dump({"resale": resale[["origin", "h", "slug", "r"]],
-             "launch_phase": launch_phase[["origin", "h", "slug", "r"]],
-             "ec": ec[["origin", "h", "slug", "r"]],
-             "brand_new": lb[["launch_year", "h", "group", "r"]]},
-            open(DP / "band_residuals.pkl", "wb"))
+import sys
 
-# ------------------------------------------------ 1. choose the half-life (walk-forward)
-HL = {"equal weights": None, "10-yr half-life": 10, "5-yr half-life": 5}
-rows = []
-for name, hl in HL.items():
-    for T in sorted(resale.origin.unique()):
-        for h in range(1, 21):
-            test = resale[(resale.origin == T) & (resale.h == h)]
-            past = resale[(resale.h == h) & (resale.origin + h <= T)]
-            if test.empty or past.origin.nunique() < 3:
-                continue
-            q = wquant(past.r.values, weights(past.origin.values, T, hl), [.1, .25, .75, .9])
-            rows.append({"weighting": name, "h": h, "n": len(test),
-                         "in50": test.r.between(q[1], q[2]).mean(),
-                         "in80": test.r.between(q[0], q[3]).mean()})
-W = pd.DataFrame(rows)
-cal = W.groupby(["weighting", "h"]).apply(lambda g: pd.Series({
-    "in_likely_50": np.average(g.in50, weights=g.n),
-    "in_plausible_80": np.average(g.in80, weights=g.n)})).reset_index()
-hs = [1, 2, 3, 5, 7, 10]
-score = cal[cal.h.isin(hs)].groupby("weighting").apply(
-    lambda g: (np.abs(g.in_likely_50 - .5) + np.abs(g.in_plausible_80 - .8)).mean() / 2)
-chosen = score.idxmin()
-cal.round(3).to_csv(OUT / "band_calibration_walkforward.csv", index=False)
-print("\nWalk-forward coverage by weighting (likely / plausible):")
-print(cal[cal.h.isin(hs)].pivot(index="h", columns="weighting",
-      values=["in_likely_50", "in_plausible_80"]).round(2).to_string())
-print("mean |coverage - target|:", score.round(3).to_dict(), "-> chosen:", chosen)
-hl = HL[chosen]
+UNKNOWN_ONLY = "--unknown-only" in sys.argv  # skip part 1 (e.g. to resume after part 1 ran)
+if not UNKNOWN_ONLY:
+    # ------------------------------------------------ residuals for each pricing path
+    bt = pd.read_pickle(DP / "unit_backtest.pkl")
+    top = d.groupby("slug").agg(top_year=("top_year", "first"), is_ec=("is_ec", "max"))
+    bt = bt.join(top, on="slug")
+    bt["avg"] = np.nan
+    for y in sorted(bt.origin.unique()):
+        k = (bt.origin == y).values
+        _, avg = avg_fn(pd.Period(f"{y}Q4", "Q"))
+        bt.loc[k, "avg"] = bt.flat_gbm.values[k] + np.log(avg(bt.years.values[k]))
+    bt["r"] = bt.actual - bt.avg
+    resale = bt                                             # tool's resale table: all units
+    launch_phase = bt[(bt.top_year > bt.origin) & (bt.is_ec == 0)]
+    ec = bt[bt.is_ec == 1].copy()
+    ec_adj = np.zeros(len(ec))
+    for o in sorted(ec.origin.unique()):
+        m = (ec.origin == o).values
+        hist = d[d.date <= pd.Timestamp(f"{o}-12-31")]
+        if hist.is_ec.sum() < 200:
+            continue
+        Ao = TransparentModel().fit(hist)
+        age0 = (o + 1) - ec.top_year.values[m]
+        b0 = pd.cut(age0, AGE_BINS, labels=AGE_LABELS).astype(object)
+        b1 = pd.cut(age0 + ec.years.values[m], AGE_BINS, labels=AGE_LABELS).astype(object)
+        f = np.vectorize(lambda l: Ao.effect("ec_age", l))
+        ec_adj[m] = f(b1) - f(b0)
+    ec["r"] = ec.actual - (ec.avg + np.nan_to_num(ec_adj))
+    print("EC residuals done", flush=True)
+    lb = pd.read_pickle(DP / "launch_backtest.pkl")
+    lb = lb[lb.is_ec == 0].copy()
+    launch = d[d.sale_type == "new"].groupby("slug").date.min()
+    lb["launch_year"] = lb.group.map(launch).dt.year
+    lb["r"] = np.nan
+    for slug, g in lb.groupby("group"):
+        q = pd.Period(launch[slug], "Q") - 1
+        cur, avg = avg_fn(q)
+        k = (lb.group == slug).values
+        lb.loc[k, "r"] = lb.actual.values[k] - (lb.launch_plain.values[k]
+                                                - np.log(cur(lb.x.values[k]))
+                                                + np.log(avg(lb.x.values[k])))
+    pickle.dump({"resale": resale[["origin", "h", "slug", "r"]],
+                 "launch_phase": launch_phase[["origin", "h", "slug", "r"]],
+                 "ec": ec[["origin", "h", "slug", "r"]],
+                 "brand_new": lb[["launch_year", "h", "group", "r"]]},
+                open(DP / "band_residuals.pkl", "wb"))
 
-# ------------------------------------------------ rebuild the bands with the chosen weighting
-band_table(resale, "origin", hl).round(2).to_csv(OUT / "bands_resale.csv")
-band_table(launch_phase, "origin", hl).round(2).to_csv(OUT / "bands_launch_phase.csv")
-band_table(ec, "origin", hl).round(2).to_csv(OUT / "bands_ec.csv")
-bn = band_table(lb.rename(columns={"group": "slug"}), "slug", hl, start_col="launch_year")
-bn.round(2).to_csv(OUT / "bands_brand_new_launch.csv")
-print("band tables written", flush=True)
+    # ------------------------------------------------ 1. choose the half-life (walk-forward)
+    HL = {"equal weights": None, "10-yr half-life": 10, "5-yr half-life": 5}
+    rows = []
+    for name, hl in HL.items():
+        for T in sorted(resale.origin.unique()):
+            for h in range(1, 21):
+                test = resale[(resale.origin == T) & (resale.h == h)]
+                past = resale[(resale.h == h) & (resale.origin + h <= T)]
+                if test.empty or past.origin.nunique() < 3:
+                    continue
+                q = wquant(past.r.values, weights(past.origin.values, T, hl), [.1, .25, .75, .9])
+                rows.append({"weighting": name, "h": h, "n": len(test),
+                             "in50": test.r.between(q[1], q[2]).mean(),
+                             "in80": test.r.between(q[0], q[3]).mean()})
+    W = pd.DataFrame(rows)
+    cal = W.groupby(["weighting", "h"]).apply(lambda g: pd.Series({
+        "in_likely_50": np.average(g.in50, weights=g.n),
+        "in_plausible_80": np.average(g.in80, weights=g.n)})).reset_index()
+    hs = [1, 2, 3, 5, 7, 10]
+    score = cal[cal.h.isin(hs)].groupby("weighting").apply(
+        lambda g: (np.abs(g.in_likely_50 - .5) + np.abs(g.in_plausible_80 - .8)).mean() / 2)
+    chosen = score.idxmin()
+    cal.round(3).to_csv(OUT / "band_calibration_walkforward.csv", index=False)
+    print("\nWalk-forward coverage by weighting (likely / plausible):")
+    print(cal[cal.h.isin(hs)].pivot(index="h", columns="weighting",
+          values=["in_likely_50", "in_plausible_80"]).round(2).to_string())
+    print("mean |coverage - target|:", score.round(3).to_dict(), "-> chosen:", chosen)
+    hl = HL[chosen]
+
+    # ------------------------------------------------ rebuild the bands with the chosen weighting
+    band_table(resale, "origin", hl).round(2).to_csv(OUT / "bands_resale.csv")
+    band_table(launch_phase, "origin", hl).round(2).to_csv(OUT / "bands_launch_phase.csv")
+    band_table(ec, "origin", hl).round(2).to_csv(OUT / "bands_ec.csv")
+    bn = band_table(lb.rename(columns={"group": "slug"}), "slug", hl, start_col="launch_year")
+    bn.round(2).to_csv(OUT / "bands_brand_new_launch.csv")
+    print("band tables written", flush=True)
 
 # ------------------------------------------------ 2. unknown completed projects
 rows = []
