@@ -148,8 +148,10 @@ inside the historical range.
 
 ```
 value in N years = value today                 (valuation model)
-                 × market growth to year N     (URA Non-Landed index: short-term model for
-                                                years 1–2, then base-case income growth)
+                 × market growth to year N     (URA Non-Landed index: average of the current
+                                                path — short-term model for years 1–2, then
+                                                base-case income growth — and Google TimesFM
+                                                3.0's forecast; see sgpf/market_timesfm.py)
 ```
 
 The range at each horizon is where 80% of actual resale prices landed relative to forecasts
@@ -222,40 +224,44 @@ used:
 
 1. Units were valued with LightGBM (and, for comparison, the transparent model) fitted on
    sales up to then.
-2. Values were grown with the short-term index forecast for years 1–2, then with the
-   trailing 10-year income growth.
+2. Values were grown with the market path known at the time: the average (geometric mean) of
+   the short-term index forecast for years 1–2 then trailing 10-year income growth, and
+   TimesFM 3.0's forecast of the index from data up to then.
 3. The forecasts were compared with the actual resale prices of the same units (same
    project and unit number) 1–20 years later.
 
 | Years ahead | Start years | Resales tested | Typical error | Within 10% | Within 20% | 80% of actual prices landed within | Forecast bias | No-growth baseline error |
 |---|---|---|---|---|---|---|---|---|
-| 1 | 29 | 365k | **8.0%** | 58% | 85% | -11% to +26% | -3.3% | 8.7% |
-| 2 | 28 | 239k | **11.2%** | 46% | 75% | -16% to +33% | -2.1% | 13.0% |
-| 3 | 27 | 232k | **13.6%** | 38% | 67% | -20% to +38% | -2.7% | 17.0% |
-| 4 | 26 | 225k | **17.1%** | 31% | 57% | -24% to +46% | -3.1% | 19.9% |
-| 5 | 25 | 214k | **19.3%** | 27% | 52% | -27% to +51% | -2.2% | 21.8% |
-| 7 | 23 | 185k | **23.0%** | 24% | 44% | -34% to +56% | +4.3% | 24.1% |
-| 10 | 20 | 127k | **28.0%** | 17% | 35% | -40% to +44% | +17.0% | 29.1% |
-| 15 | 15 | 55k | **22.8%** | 22% | 44% | -43% to +46% | -3.5% | 49.3% |
-| 20 | 10 | 26k | **38.3%** | 13% | 26% | -68% to +55% | +17.5% | 53.3% |
+| 1 | 29 | 365k | **7.9%** | 59% | 85% | -10% to +26% | -3.9% | 8.7% |
+| 2 | 28 | 239k | **11.0%** | 46% | 76% | -14% to +34% | -4.1% | 13.0% |
+| 3 | 27 | 232k | **13.4%** | 39% | 68% | -17% to +40% | -5.3% | 17.0% |
+| 4 | 26 | 225k | **15.9%** | 33% | 60% | -20% to +47% | -5.5% | 19.9% |
+| 5 | 25 | 214k | **16.9%** | 31% | 57% | -22% to +51% | -4.5% | 21.8% |
+| 7 | 23 | 185k | **18.2%** | 29% | 54% | -27% to +52% | -1.4% | 24.1% |
+| 10 | 20 | 127k | **19.4%** | 26% | 51% | -29% to +46% | +1.0% | 29.1% |
+| 15 | 15 | 55k | **21.1%** | 23% | 47% | -25% to +51% | -12.6% | 49.3% |
+| 20 | 10 | 26k | **30.4%** | 16% | 33% | -44% to +59% | +4.4% | 53.3% |
+
+The earlier income-rule path's table is kept in `outputs/unit_backtest_by_horizon_income_rule.csv`
+(10-year typical error 28.0%).
 
 **Start years 2016–2025 only** (a calmer period with richer data; few start years at
 longer horizons, so treat these as the good-times case, not the expected case):
 
 | Years ahead | Start years | Typical error | Within 10% | 80% of actual prices landed within |
 |---|---|---|---|---|
-| 1 | 10 | 5.2% | 79% | -7% to +13% |
-| 2 | 9 | 7.1% | 66% | -10% to +18% |
-| 3 | 8 | 7.8% | 62% | -10% to +20% |
-| 5 | 6 | 9.9% | 50% | -12% to +27% |
-| 7 | 4 | 12.6% | 40% | -16% to +31% |
+| 1 | 10 | 5.2% | 78% | -6% to +14% |
+| 2 | 9 | 7.5% | 63% | -8% to +20% |
+| 3 | 8 | 8.3% | 58% | -9% to +24% |
+| 5 | 6 | 10.3% | 49% | -9% to +30% |
+| 7 | 4 | 12.5% | 40% | -12% to +34% |
 
 Forecast bias is the median of forecast vs actual (+ = forecast too high). Valuations are LightGBM, refitted at each start year on data up to then; the unit forecast uses these ranges.
 
 Full tables for every year: `outputs/unit_backtest_by_horizon.csv` (all start years) and
 `outputs/unit_backtest_by_horizon_since2016.csv`.
 
-**How to read this:**
+**How to read this** (the start-year examples refer to the earlier income-rule path):
 
 * **Start year matters most.** Units in the same start year share one market path, so their
   errors move together. Typical 10-year error by start year ranged from −36% (forecasts made
@@ -298,54 +304,61 @@ forecasts were too low by 12–17% at 2–5 years.
 
 ### Forecast error and range by path
 
+All with the adopted market path (average of the current path and TimesFM 3.0). Income-rule
+figures are kept in the `*_income_rule.csv` files and in the earlier rows of
+`outputs/ec_backtest.csv` and `outputs/launch_forecast_backtest.csv`.
+
 **Resale (condo/apartment)**, LightGBM valuation (start years 1997–2025):
 
 | Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
 |---|---|---|---|---|
-| 1 | 8.0% | 58% | -11% to +26% | 29 |
-| 2 | 11.2% | 46% | -16% to +33% | 28 |
-| 3 | 13.6% | 38% | -20% to +38% | 27 |
-| 5 | 19.3% | 27% | -27% to +51% | 25 |
-| 10 | 28.0% | 17% | -40% to +44% | 20 |
-| 15 | 22.8% | 22% | -43% to +46% | 15 |
-| 20 | 38.3% | 13% | -68% to +55% | 10 |
+| 1 | 7.9% | 59% | -10% to +26% | 29 |
+| 2 | 11.0% | 46% | -14% to +34% | 28 |
+| 3 | 13.4% | 39% | -17% to +40% | 27 |
+| 5 | 16.9% | 31% | -22% to +51% | 25 |
+| 10 | 19.4% | 26% | -29% to +46% | 20 |
+| 15 | 21.1% | 23% | -25% to +51% | 15 |
+| 20 | 30.4% | 16% | -44% to +59% | 10 |
 
 **Launch phase** (bought before completion, non-EC):
 
 | Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
 |---|---|---|---|---|
-| 1 | 10.3% | 49% | -16% to +35% | 29 |
-| 2 | 10.7% | 48% | -19% to +34% | 28 |
-| 3 | 12.8% | 41% | -21% to +37% | 27 |
-| 5 | 18.9% | 29% | -29% to +45% | 25 |
-| 10 | 31.9% | 14% | -44% to +33% | 20 |
-| 15 | 24.8% | 21% | -51% to +36% | 15 |
-| 20 | 49.8% | 14% | -72% to +35% | 10 |
+| 1 | 9.8% | 51% | -14% to +36% | 29 |
+| 2 | 10.2% | 49% | -16% to +35% | 28 |
+| 3 | 12.1% | 44% | -18% to +39% | 27 |
+| 5 | 15.3% | 34% | -24% to +46% | 25 |
+| 10 | 20.8% | 24% | -33% to +36% | 20 |
+| 15 | 20.3% | 25% | -32% to +43% | 15 |
+| 20 | 31.6% | 17% | -49% to +39% | 10 |
 
-**EC** (resale or launch phase, with EC adjustment):
+**EC** (resale or launch phase, with EC adjustment). With the averaged path, EC error is a
+little higher at 2–5 years than with the income-rule path (e.g. 3 yrs 16.1% vs 14.0%), and lower
+at 7–10 years (10 yrs 16.2% vs 21.3%). One market path is used for all units rather than
+choosing per segment from these results:
 
 | Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
 |---|---|---|---|---|
-| 1 | 8.7% | 57% | -6% to +22% | 27 |
-| 2 | 12.4% | 40% | -10% to +30% | 27 |
-| 3 | 14.0% | 33% | -12% to +34% | 27 |
-| 5 | 16.8% | 26% | -21% to +41% | 25 |
-| 10 | 21.3% | 26% | -41% to +44% | 20 |
-| 15 | 23.5% | 19% | -40% to +45% | 15 |
-| 20 | 40.3% | 17% | -64% to +53% | 10 |
+| 1 | 8.9% | 55% | -5% to +23% | 27 |
+| 2 | 14.0% | 33% | -8% to +32% | 27 |
+| 3 | 16.1% | 29% | -10% to +38% | 27 |
+| 5 | 17.5% | 26% | -16% to +47% | 25 |
+| 10 | 16.2% | 33% | -31% to +46% | 20 |
+| 15 | 25.1% | 15% | -31% to +52% | 15 |
+| 20 | 38.0% | 18% | -54% to +56% | 10 |
 
 **Brand-new launch** (priced from comparables; horizons backed by fewer than 200 launches use the
 nearest that has enough, because few units resell before completion):
 
 | Years ahead | Typical error | Within 10% | 80% of actual within | Launches |
 |---|---|---|---|---|
-| 1 (uses 3-yr) | 20.3% | 26% | -32% to +83% | 371 |
-| 2 (uses 3-yr) | 20.3% | 26% | -32% to +83% | 371 |
-| 3 | 20.3% | 26% | -32% to +83% | 371 |
-| 5 | 21.6% | 24% | -29% to +71% | 980 |
-| 10 | 26.7% | 18% | -40% to +33% | 1027 |
-| 15 | 23.3% | 23% | -41% to +44% | 767 |
-| 20 | 38.8% | 11% | -52% to +53% | 263 |
+| 1 (uses 3-yr) | 20.6% | 23% | -30% to +79% | 371 |
+| 2 (uses 3-yr) | 20.6% | 23% | -30% to +79% | 371 |
+| 3 | 20.6% | 23% | -30% to +79% | 371 |
+| 5 | 20.6% | 24% | -26% to +71% | 980 |
+| 10 | 16.9% | 31% | -28% to +40% | 1027 |
+| 15 | 18.9% | 27% | -27% to +49% | 767 |
+| 20 | 28.4% | 16% | -38% to +56% | 263 |
 
 EC brand-new launches use the condo launch ranges: only 5–40 EC launches per horizon could be
 tested (`outputs/launch_forecast_backtest.csv`).
@@ -442,7 +455,7 @@ backtest:
 | 2 | Project features known at the start year: nearby new-launch supply, construction pipeline, MRT distance and upcoming stations (hand-coded opening years), en-bloc proxies, age, size, location, 3-yr momentum. Walk-forward ridge on de-meaned errors | Worse at every horizon from 2 yrs, with or without per-year effects. Each effect is under 3% per standard deviation and unstable over time | `outputs/unit_backtest_step2_*.csv`, `outputs/unit_step2_feature_effects*.csv` |
 | 3 | Leading indicators in the short-term index model: 10-yr SGS yield and its change, pipeline/stock, vacancy, plus a variant with cooling measures | Index error worse at 2–4 quarters ahead (e.g. 4 quarters: 5.7 vs 4.7 pts RMSE). Unit error 1 yr 7.8% vs 7.9% (better in 11 of 29 start years); unchanged from 3 yrs | `outputs/index_backtest_step3.csv`, `outputs/unit_backtest_step3.csv` |
 | 4 | Pretrained deep-learning forecaster (Amazon Chronos-Bolt Base, zero-shot on the URA Non-Landed index) as the market path: on its own, years 3+ only, and averaged with the current path (`run_chronos_test.py`) | Much worse at every horizon from 2 yrs. Unit error at 10 yrs: 57% alone, 48% from year 3, 31% averaged, vs 28% current. It extrapolates recent trends and drifts flat or down over long horizons (e.g. −76% over 10 yrs from 2003, when prices rose 85%) | `outputs/chronos_unit_test.csv`, `outputs/chronos_index_test.csv` |
-| 5 | Google TimesFM (`run_timesfm_test.py`): 2.5 and 3.0 on the URA Non-Landed index, and 3.0 with income/CPI covariates, each alone, from year 3, and averaged with the current path | TimesFM 2.5 worse, like Chronos. **TimesFM 3.0 much better at 5+ yrs**: unit error at 10 yrs 17.9% alone and 19.4% averaged, vs 28.0% current. Averaged with the current path, it passes the adoption rule (better at 3, 5 and 10 yrs and in most start years). Covariates were effectively ignored. No sign of memorisation: it missed the 1997, 2008 and 2009 turning points, and its forecasts are stable when 0.5% noise is added to its input. Its edge comes from conservative, damped growth forecasts in a period when prices lagged incomes. **Not yet adopted** (awaiting decision) | `outputs/timesfm_unit_test.csv`, `outputs/timesfm_index_test.csv` |
+| 5 | Google TimesFM (`run_timesfm_test.py`): 2.5 and 3.0 on the URA Non-Landed index, and 3.0 with income/CPI covariates, each alone, from year 3, and averaged with the current path | TimesFM 2.5 worse, like Chronos. **TimesFM 3.0 much better at 5+ yrs**: unit error at 10 yrs 17.9% alone and 19.4% averaged, vs 28.0% current. Averaged with the current path, it passes the adoption rule (better at 3, 5 and 10 yrs and in most start years). Covariates were effectively ignored. No sign of memorisation: it missed the 1997, 2008 and 2009 turning points, and its forecasts are stable when 0.5% noise is added to its input. Its edge comes from conservative, damped growth forecasts in a period when prices lagged incomes. **Adopted**: the unit forecast's market path is now this average (`sgpf/market_timesfm.py`), and all range tables were recomputed with it (`run_timesfm_adopt.py`, `outputs/timesfm_adoption_summary.csv`) | `outputs/timesfm_unit_test.csv`, `outputs/timesfm_index_test.csv` |
 | 6 | Cross-country data (`run_xcountry_test.py`): a pooled model, trained on 40 OECD countries' price-to-income ratios, predicts how Singapore's price-to-income ratio changes from year 2 (inputs: valuation vs own history, 3-yr and 1-yr momentum; walk-forward). Data: OECD house price indicators (download, not committed) | Worse at 5–10 yrs (10 yrs: 29.7% vs 25.2%, better in 4 of 13 start years). Better at 15–20 yrs, but only 8 and 3 start years. Not adopted. The pooled model mostly learned the OECD-wide upward drift in price-to-income since 1970; in Singapore that ratio fell. The valuation effect was small (about −0.06 per unit of gap) | `outputs/xcountry_unit_test.csv`, `outputs/xcountry_index_test.csv`, `outputs/xcountry_coefficients.csv` |
 
 The adoption rule for step 3 was set before running it: adopt only if both the index backtest
@@ -455,11 +468,11 @@ Same-size units on floors 25 and 33 sold for S$1.945M–1.949M in mid-2026.
 
 | Horizon | Future dollars | 80% range (backtest) | Today's dollars |
 |---|---|---|---|
-| 1 yr | S$1.90M | 1.68–2.38M | S$1.87M |
-| 3 yr | S$2.06M | 1.66–2.85M | S$1.97M |
-| 5 yr | S$2.25M | 1.65–3.40M | S$2.08M |
-| 10 yr | S$2.82M | 1.70–4.07M | S$2.41M |
-| 20 yr | S$4.40M | 1.39–6.81M | S$3.21M |
+| 1 yr | S$1.86M | 1.68–2.35M | S$1.83M |
+| 3 yr | S$1.95M | 1.62–2.72M | S$1.86M |
+| 5 yr | S$2.04M | 1.59–3.09M | S$1.89M |
+| 10 yr | S$2.35M | 1.67–3.43M | S$2.01M |
+| 20 yr | S$3.15M | 1.77–5.00M | S$2.30M |
 
 ## Possible next steps
 

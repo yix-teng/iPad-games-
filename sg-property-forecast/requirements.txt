@@ -6,3 +6,7 @@ statsmodels>=0.14
 matplotlib>=3.7
 requests>=2.31
 pytest>=7
+# Market path (sgpf/market_timesfm.py). Cached forecasts in data/timesfm_paths.json are used
+# when the index has not changed; otherwise TimesFM 3.0 is needed:
+torch>=2.2
+timesfm @ git+https://github.com/google-research/timesfm.git
