@@ -352,6 +352,29 @@ tested (`outputs/launch_forecast_backtest.csv`).
 
 Worked examples of all four paths: `outputs/unit_forecast_example.txt`.
 
+### Out-of-sample test on unseen projects (`run_holdout_test.py`)
+
+Each project was removed from the data entirely and the models were rebuilt with sales up to
+mid-2016 only. Its units were then priced the way the tool prices a project with no
+transactions (comparable launches within 3 km) and grown with the market path known at the
+time. The forecasts were compared with the same units' actual resale prices in 2025–26.
+
+| | Lake Grande (D22, OCR, launched Jul 2016) | OUE Twin Peaks (D9, CCR, completed 2015) |
+|---|---|---|
+| Units tested | 41 (bought new 2016) | 21 (resold 2016) |
+| Comparables | 1 launch, 0.2 km away | 12 launches, mostly a different tier |
+| 2016 price: typical error | **6.0%** (+5% bias) | **30%** (−30%: luxury premium missed) |
+| ~10-year forecast: typical error | **6.5%** (no bias) | **41%** (+41%) |
+| Actual price change 2016→2026 | +40% | −22% |
+| Inside the stated 80% range | 41 of 41 | 21 of 21 |
+
+The model works best for mass-market OCR/RCR condos with a close comparable nearby. Treat it
+with caution for prime-district luxury projects with no sales history: nearby launches may not
+be true comparables, and prime luxury did not follow the national market over 2016–2026. Two
+projects are an illustration; the 1997–2025 backtest is the measure of accuracy. Summary:
+`outputs/holdout_test_summary.csv`; unit-level results stay in `data/propertynoob/` (not
+committed).
+
 ### Accuracy by segment
 
 **Valuation today** (train to 2026-03, test 2026-04..09; `outputs/unit_valuation_by_segment.csv`):
