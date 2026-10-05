@@ -19,7 +19,8 @@ from .data import fetch_price_index
 from .index_model import forecast
 from .long_run import build_panel
 from .unit_forecast import _rel_lookup
-from .unit_model import (AGE_BINS, AGE_LABELS, TransparentModel, relative_performance)
+from .unit_model import (AGE_BINS, AGE_LABELS, TransparentModel, fit_gbm, predict_gbm,
+                         relative_performance)
 
 
 def _market_fn(T: pd.Timestamp):
@@ -43,7 +44,7 @@ def _market_fn(T: pd.Timestamp):
     return f, float(np.exp(l1) - 1), float(np.exp(g) - 1)
 
 
-def run_origin(d: pd.DataFrame, year: int, max_h: int = 20) -> pd.DataFrame:
+def run_origin(d: pd.DataFrame, year: int, max_h: int = 20, gbm: bool = True) -> pd.DataFrame:
     T = pd.Timestamp(f"{year}-12-31")
     hist = d[d.date <= T]
     later = d[(d.date > T) & (d.date <= T + pd.DateOffset(years=max_h, months=6))
@@ -66,6 +67,12 @@ def run_origin(d: pd.DataFrame, year: int, max_h: int = 20) -> pd.DataFrame:
     age_bin = pd.cut(at_T.age, AGE_BINS, labels=AGE_LABELS).astype(object).fillna("unknown")
     at_T["ec_age_bin"] = np.where(at_T.is_ec == 1, age_bin, "not EC")
     log_v, _ = A.predict(at_T)
+    if gbm:  # LightGBM valuation, fitted on sales up to T (last 6 months for early stopping)
+        vcut = hist.month.max() - 6
+        B = fit_gbm(hist[hist.month <= vcut], hist[hist.month > vcut])
+        log_g = predict_gbm(B, at_T, at_month=str(hist.month.max()))
+    else:
+        log_g = np.full(len(at_T), np.nan)
 
     rel = np.zeros(len(at_T))
     if tab is not None and len(tab):
@@ -90,20 +97,22 @@ def run_origin(d: pd.DataFrame, year: int, max_h: int = 20) -> pd.DataFrame:
         "origin": year, "years": x, "h": np.clip(np.round(x).astype(int), 1, max_h),
         "slug": later.slug.values, "actual": later.log_psf.values,
         "flat": log_v, "market": log_v + np.log(market(x)),
+        "flat_gbm": log_g, "market_gbm": log_g + np.log(market(x)),
         "full": log_v + np.log(market(x)) + rel,
         "market_g1": g1, "income_g": g_inc})
 
 
 def summarise(bt: pd.DataFrame, method: str = "market") -> pd.DataFrame:
     """Accuracy by horizon. `method` is the forecast whose range is reported ("market" =
-    valuation x market path, the version the unit forecast uses)."""
+    transparent valuation x market path; "market_gbm" = LightGBM valuation x market path)."""
     rows = []
     for h, g in bt.groupby("h"):
         r = {"years": h, "sales": len(g), "origins": g.origin.nunique(),
              "first_origin": g.origin.min(), "last_origin": g.origin.max()}
-        for m in ("flat", "market", "full"):
-            e = np.exp(g[m] - g.actual) - 1  # predicted / actual - 1
-            r[f"{m}_median_err"] = e.abs().median() * 100
+        for m in ("flat", "market", "full", "flat_gbm", "market_gbm"):
+            if m in g and g[m].notna().any():
+                e = np.exp(g[m] - g.actual) - 1  # predicted / actual - 1
+                r[f"{m}_median_err"] = e.abs().median() * 100
         e = np.exp(g[method] - g.actual) - 1
         r["within_10"] = (e.abs() < 0.10).mean()
         r["within_20"] = (e.abs() < 0.20).mean()
