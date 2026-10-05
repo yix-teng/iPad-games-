@@ -271,6 +271,60 @@ Full tables for every year: `outputs/unit_backtest_by_horizon.csv` (all start ye
   years (for example 32.9% vs 29.0% at 10 years). The unit forecast therefore does not apply
   it; the table above is kept for information.
 
+### Accuracy by segment
+
+**Valuation today** (train to 2026-03, test 2026-04..09; `outputs/unit_valuation_by_segment.csv`):
+
+| Segment | Test sales | LightGBM typical error | 80% of actual within | Transparent typical error |
+|---|---|---|---|---|
+| Resales | 4,675 | **4.0%** | −6% to +10% | 5.8% |
+| New sales in projects already selling | 1,262 | — | — | **2.2%** |
+| Brand-new projects (no prior sales) | 1,796 | 32.3% (always too low) | +28% to +89% | cannot price |
+| Freehold | 1,539 | 4.5% | −9% to +10% | 5.8% |
+| Leasehold | 6,440 | 6.9% | −4% to +57% | 4.7% |
+| Projects with 1–9 prior sales | 20 | 9.0% | −7% to +22% | 13.4% |
+| Projects with 50+ prior sales | 5,989 | 4.2% | −6% to +14% | 4.9% |
+
+The leasehold and OCR figures for LightGBM include the brand-new launches, most of which were
+leasehold OCR projects.
+
+**New launches priced from comparable launches** (`run_launch_backtest.py`,
+`outputs/launch_pricing_backtest.csv`). Every project launched from 2000 was priced from new
+sales of other projects within 3 km (fallback: same district) in the 12 months before its
+launch, matched on tenure and EC status and adjusted for floor and size. The result was then
+compared with its first 3 months of actual sales:
+
+| Launches | Number | Typical error | Within 10% | 80% of actual within |
+|---|---|---|---|---|
+| All, 2000–2026 | 1,551 | **11.4%** | 45% | −18% to +29% |
+| Launched 2020–2026 | 154 | **9.2%** | 50% | −12% to +25% |
+| Leasehold | 416 | 10.3% | 50% | −17% to +26% |
+| Freehold | 1,135 | 15.0% | 40% | −23% to +46% |
+| CCR | 436 | 19.6% | 30% | −20% to +81% |
+| OCR | 370 | 9.8% | 50% | −16% to +22% |
+| EC | 55 | 7.2% | 60% | −6% to +20% |
+
+This method is not yet built into the forecast tool, which values every unit as a resale.
+
+**Multi-year forecasts** (`outputs/unit_backtest_by_segment.csv`; scored against later resales):
+
+| Typical error | 1 yr | 3 yr | 5 yr | 10 yr |
+|---|---|---|---|---|
+| Completed at start | 8.0% | 13.7% | 19.4% | 27.1% |
+| New launch / under construction at start | 10.3% | 12.8% | 18.7% | 30.3% |
+| Freehold | 9.0% | 14.2% | 20.2% | 28.1% |
+| Leasehold | 7.4% | 13.2% | 18.7% | 27.8% |
+| No resales before start | 9.8% | 13.2% | 18.6% | 30.3% |
+| 1–9 resales before start | 10.3% | 16.1% | 21.4% | 31.2% |
+| 50+ resales before start | 7.5% | 13.1% | 19.2% | 25.2% |
+| CCR | 9.0% | 15.2% | 22.7% | 32.4% |
+| OCR | 7.7% | 13.6% | 18.8% | 26.3% |
+| EC | 8.6% | 16.6% | 20.6% | 20.9% |
+
+ECs were forecast too low from 3 years (bias about −15% to −17%). The forecasts did not
+capture the jump in EC prices when the 5-year minimum occupation period ends and again at
+full privatisation after 10 years.
+
 ### Attempts to improve accuracy
 
 The backtest was split into two error sources. Valuation and unit-level noise account for an
