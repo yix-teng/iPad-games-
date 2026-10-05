@@ -1,8 +1,9 @@
 """Forecast one condo unit: today's value x market path, with ranges from a backtest.
 
     value in N years = value today                 (unit valuation model)
-                     x market growth to year N     (URA Non-Landed index: short-term model
-                                                    for years 1-2, then base income growth)
+                     x market growth to year N     (URA Non-Landed index: average of the
+                                                    short-term model for years 1-2 then base
+                                                    income growth, and TimesFM 3.0)
 
 The 80% range at each horizon is how far actual resale prices landed from forecasts made
 this way in the 1997-2025 backtest with LightGBM valuations refitted at each start year
@@ -34,39 +35,42 @@ BACKTEST = Path(__file__).resolve().parent.parent / "outputs" / "unit_backtest_b
 
 
 def market_path(series: str = "Non-Landed", horizons=HORIZONS) -> pd.DataFrame:
-    """Market growth multipliers (central and 80% band) per horizon, plus CPI deflator."""
+    """Market growth multipliers per horizon: the average (geometric mean) of
+    * current path: short-term index model for years 1-2, then base-case income growth, and
+    * TimesFM 3.0's forecast of the index (sgpf.market_timesfm).
+    Also returns both components and the CPI assumption."""
+    from .market_timesfm import timesfm_growth, timesfm_log_path
     cache = DATA_DIR / f"market_path_{series.replace(' ', '_')}.csv"
     s = fetch_price_index()[series].dropna()
+    p0, t0 = s.iloc[-1], s.index[-1]
     if cache.exists():
         mp = pd.read_csv(cache)
-        if mp.attrs_quarter.iloc[0] == str(s.index[-1]):
-            return mp
-    rows, p0 = [], s.iloc[-1]
-    # Years 1-2: short-term index model. Later years continue from its year-2 value at the
-    # base-case income growth, so the path has no jump where the sources hand over; the
-    # range at each horizon is the long-run model's historical range for that horizon.
+        if mp.attrs_quarter.iloc[0] == str(t0) and "timesfm" in mp and \
+                set(mp.years) >= set(horizons):
+            return mp[mp.years.isin(horizons)].reset_index(drop=True)
     bt = backtest(s, horizons=[4, 8], models=["ensemble"])
     fc = forecast(s, "ensemble", horizons=[4, 8], bt=bt).table
-    short = {h: fc[fc.h == 4 * h].iloc[0] for h in (1, 2)}
+    l1 = np.log(fc[fc.h == 4].point.iloc[0] / p0)
+    l2 = np.log(fc[fc.h == 8].point.iloc[0] / p0)
     a = scenario_anchors(series=series)
-    g_nom = (1 + a["base"]) * (1 + a["inflation"]) - 1
-    sc = scenarios({"base": a["base"]}, a["inflation"], years=max(horizons), series=series)
-    for h in horizons:
-        if h <= 2:
-            r = short[h]
-            rows.append({"years": h, "source": "short-term index model",
-                         "central": r.point / p0, "lo": r.lo80 / p0, "hi": r.hi80 / p0})
-        else:
-            c = short[2].point / p0 * (1 + g_nom) ** (h - 2)
-            r = sc[sc.years == h].iloc[0]
-            rows.append({"years": h, "source": "short-term to year 2, then base income growth",
-                         "central": c, "lo": c * r.likely_lo / r.central,
-                         "hi": c * r.likely_hi / r.central})
+    g = np.log((1 + a["base"]) * (1 + a["inflation"]))
+
+    def current(x):
+        x = np.asarray(x, dtype=float)
+        return np.exp(np.where(x <= 1, x * l1,
+                      np.where(x <= 2, l1 + (x - 1) * (l2 - l1), l2 + (x - 2) * g)))
+
+    path = timesfm_log_path(t0, series)
+    rows = []
+    for h in sorted(set(horizons) | set(range(1, 21))):
+        c, tf = float(current(h)), float(timesfm_growth(path, h))
+        rows.append({"years": h, "central": np.sqrt(c * tf), "current": c, "timesfm": tf,
+                     "source": "average of current path and TimesFM 3.0"})
     mp = pd.DataFrame(rows)
     mp["inflation_pa"] = a["inflation"]
-    mp["attrs_quarter"] = str(s.index[-1])
+    mp["attrs_quarter"] = str(t0)
     mp.to_csv(cache, index=False)
-    return mp
+    return mp[mp.years.isin(horizons)].reset_index(drop=True)
 
 
 def _rel_lookup(tab: pd.DataFrame, tenure: str, age: float, lease_left: float,
@@ -122,42 +126,56 @@ OUT = Path(__file__).resolve().parent.parent / "outputs"
 MIN_LAUNCHES = 200
 
 
+BAND_FILES = {"resale": "bands_resale.csv", "launch phase": "bands_launch_phase.csv",
+              "brand-new launch": "bands_brand_new_launch.csv",
+              "unknown completed project": "bands_unknown_completed.csv"}
+
+
 def _range_table(mode: str, is_ec: bool) -> pd.DataFrame:
-    """Backtest error and 80% range by horizon for the pricing path used.
-    Columns: err, within_10, lo, hi, groups (start years or launches)."""
-    if is_ec and mode != "brand-new launch":
-        t = pd.read_csv(OUT / "ec_backtest.csv")
-        t = t[t.method == "EC resale, with EC adjustment"].set_index("years")
-        return t.rename(columns={"typical_err": "err", "range80_lo": "lo", "range80_hi": "hi"})
+    """Backtest error and bands by horizon for the pricing path used (run_band_calibration.py).
+    Columns: err, within_10, lo/hi (plausible, 10th-90th), lo50/hi50 (likely, 25th-75th),
+    groups (start years or launches)."""
+    f = BAND_FILES[mode]
+    if is_ec and mode in ("resale", "launch phase"):
+        f = "bands_ec.csv"
+    t = pd.read_csv(OUT / f, index_col="years")
+    t = t[t.index >= 1]
     if mode == "brand-new launch":
-        t = pd.read_csv(OUT / "launch_forecast_backtest.csv")
-        t = t[t.method == "launch, condo/apartment"].set_index("years")
         # Few units resell within 2 years of launch (before completion), so horizons backed by
         # fewer than 200 launches use the nearest horizon that has enough.
         t = t[t.groups >= MIN_LAUNCHES]
-        return t.rename(columns={"typical_err": "err", "range80_lo": "lo", "range80_hi": "hi"})
-    f = "unit_backtest_launch_phase.csv" if mode == "launch phase" else "unit_backtest_by_horizon.csv"
-    t = pd.read_csv(OUT / f, index_col="years")
-    return t.rename(columns={f"{t.method.iloc[0]}_median_err": "err", "range80_lo": "lo",
-                             "range80_hi": "hi", "origins": "groups"})
+    if mode == "unknown completed project":
+        # Start years 2008, 2013 and 2018: beyond 10 years only 2008 remains, so longer
+        # horizons use the 10-year band.
+        t = t[t.index <= 10]
+    return t.rename(columns={"typical_err": "err", "range80_lo": "lo", "range80_hi": "hi",
+                             "range50_lo": "lo50", "range50_hi": "hi50"})
 
 
-def _today_range(mode: str, acc: dict) -> tuple[float, float, float, str]:
-    """(typical error %, low %, high %, source) for today's price."""
+def _today_range(mode: str, acc: dict) -> dict:
+    """Typical error and bands (in %) for today's price, with their source."""
     if mode == "brand-new launch":
         r = pd.read_csv(OUT / "launch_pricing_backtest.csv", index_col=0).loc[
             "all launches 2000-2026"]
-        lo, hi = (float(x.strip().rstrip("%")) for x in r.range80.split(" to "))
-        return float(r.typical_err), lo, hi, f"{int(r.launches):,} launches since 2000"
+        return {"err": r.typical_err, "lo": r.range80_lo, "hi": r.range80_hi,
+                "lo50": r.range50_lo, "hi50": r.range50_hi,
+                "source": f"{int(r.launches):,} launches since 2000"}
+    if mode == "unknown completed project":
+        r = pd.read_csv(OUT / BAND_FILES[mode], index_col="years").loc[0]
+        return {"err": r.typical_err, "lo": r.range80_lo, "hi": r.range80_hi,
+                "lo50": r.range50_lo, "hi50": r.range50_hi,
+                "source": f"{int(r.sales):,} resales of {int(r.groups):,} projects the model "
+                          "had not seen (2008, 2013, 2018)"}
+    v = pd.read_csv(OUT / "unit_valuation_by_segment.csv")
     if mode == "launch phase":
-        v = pd.read_csv(OUT / "unit_valuation_by_segment.csv")
         r = v[(v.segment == "sale_type") & (v.group == "new")].iloc[0]
-        return (float(r.transparent_err), float(r.transparent_range80_lo),
-                float(r.transparent_range80_hi), "new sales, Apr-Sep 2026 test")
-    res = acc[acc["chosen_rule"]]["resale"]
-    return (res["median_err_pct"], (np.exp(acc["chosen_resale_log_resid_q10"]) - 1) * 100,
-            (np.exp(acc["chosen_resale_log_resid_q90"]) - 1) * 100,
-            f"{res['n']:,} resales, {acc['test_from']}..{acc['test_to']} test")
+        m, src = "transparent", "new sales, Apr-Sep 2026 test"
+    else:
+        r = v[(v.segment == "sale_type") & (v.group == "resale")].iloc[0]
+        m, src = "lightgbm", f"resales, {acc['test_from']}..{acc['test_to']} test"
+    return {"err": r[f"{m}_err"], "lo": r[f"{m}_range80_lo"], "hi": r[f"{m}_range80_hi"],
+            "lo50": r[f"{m}_range50_lo"], "hi50": r[f"{m}_range50_hi"],
+            "source": f"{int(r.sales):,} {src}"}
 
 
 def ec_shift(A, age_now: float, years: float) -> float:
@@ -200,11 +218,14 @@ def new_project_row(d, A, unit: str, area_sqft: float, postal: str, tenure: str,
 
 def forecast_unit(slug: str | None, unit: str, area_sqft: float | None = None,
                   horizons=HORIZONS, new_project: dict | None = None) -> dict:
-    """Forecast a unit. Three pricing paths, chosen automatically:
+    """Forecast a unit. Four pricing paths, chosen automatically:
 
-    * brand-new launch  project has no transactions (pass `new_project` with postal, tenure,
-                        is_ec, top_year and optionally district): priced from comparable
-                        launches within 3 km in the last 12 months (sgpf.launch).
+    * brand-new launch  project has no transactions and is not yet completed (pass
+                        `new_project` with postal, tenure, is_ec, top_year and optionally
+                        district): priced from comparable launches within 3 km in the last
+                        12 months (sgpf.launch).
+    * unknown completed project  no transactions in the data but already completed
+                        (top_year in the past): LightGBM on location and building features.
     * launch phase      project is selling new units and has no resales yet: today's price
                         is the transparent model's new-sale price (its own recent launch
                         prices); forecasts use the LightGBM resale value.
@@ -220,9 +241,21 @@ def forecast_unit(slug: str | None, unit: str, area_sqft: float | None = None,
             raise ValueError(f"'{slug}' has no transactions: pass new_project details "
                              "(postal, tenure, is_ec, top_year) to price it from launches")
         if area_sqft is None:
-            raise ValueError("area_sqft is required for a brand-new project")
-        mode = "brand-new launch"
+            raise ValueError("area_sqft is required for a project with no transactions")
         row = new_project_row(d, A, unit, area_sqft, **new_project)
+    if (slug is None or slug not in set(d.slug)) and row.age >= 0:
+        # Completed project the data has never seen: LightGBM on location and building
+        # features (tested on unseen projects in run_band_calibration.py).
+        from .geo import location_features
+        mode = "unknown completed project"
+        loc = location_features(pd.DataFrame({"lat": [row.lat], "lon": [row.lon]}))
+        row["mrt_km"], row["cbd_km"] = loc.mrt_km.iloc[0], loc.cbd_km.iloc[0]
+        row["sale_type"], row["slug"] = "resale", "__unseen__"
+        value = float(np.exp(predict_gbm(B, pd.DataFrame([row]))[0])) * area_sqft
+        price_now, psf = value, value / area_sqft
+        explain_B = explain_gbm(B, row)
+    elif slug is None or slug not in set(d.slug):
+        mode = "brand-new launch"
         comps = comparables(A, d, row.lat, row.lon, row.district, row.tenure_type,
                             row.is_ec, d.date.max() + pd.Timedelta(days=1))
         if comps.empty:
@@ -233,7 +266,7 @@ def forecast_unit(slug: str | None, unit: str, area_sqft: float | None = None,
         resale_row = row.copy(); resale_row["sale_type"] = "resale"
         value = float(np.exp(base + effects(A, pd.DataFrame([resale_row]))[0])) * area_sqft
         psf = price_now / area_sqft
-    else:
+    if slug is not None and slug in set(d.slug):
         row = unit_row(d, slug, unit, area_sqft)
         proj = d[d.slug == slug]
         recent_new = proj[(proj.sale_type == "new")
@@ -252,7 +285,7 @@ def forecast_unit(slug: str | None, unit: str, area_sqft: float | None = None,
             price_now, psf = value, value / row.area_sqft
         explain_A, explain_B = A.explain(row), explain_gbm(B, row)
     is_ec = bool(row.is_ec)
-    err_now, lo_now, hi_now, src_now = _today_range(mode, acc)
+    now = _today_range(mode, acc)
     rt = _range_table(mode, is_ec)
     mp = market_path(horizons=horizons)
     out = []
@@ -263,14 +296,21 @@ def forecast_unit(slug: str | None, unit: str, area_sqft: float | None = None,
         b = rt.loc[rt.index[np.argmin(np.abs(rt.index - h))]]  # nearest backtested horizon
         defl = (1 + m.inflation_pa) ** h
         out.append({"years": h, "market_growth_pct": (m.central - 1) * 100,
+                    "current_path_pct": (m.current - 1) * 100,
+                    "timesfm_pct": (m.timesfm - 1) * 100,
                     "ec_adjust_pct": (np.exp(adj) - 1) * 100, "value": central,
                     "low": central * (1 + b.lo / 100), "high": central * (1 + b.hi / 100),
+                    "low50": central * (1 + b.lo50 / 100),
+                    "high50": central * (1 + b.hi50 / 100),
                     "value_todays_dollars": central / defl,
                     "backtest_err_pct": b.err, "backtest_within_10pct": b.within_10,
                     "backtest_groups": int(b.groups), "backtest_years": int(b.name)})
     return {"mode": mode, "row": row, "psf": psf, "price_now": price_now,
-            "resale_value_now": value, "now_err": err_now,
-            "price_now_low": price_now * (1 + lo_now / 100),
-            "price_now_high": price_now * (1 + hi_now / 100), "now_source": src_now,
+            "resale_value_now": value, "now_err": now["err"],
+            "price_now_low": price_now * (1 + now["lo"] / 100),
+            "price_now_high": price_now * (1 + now["hi"] / 100),
+            "price_now_low50": price_now * (1 + now["lo50"] / 100),
+            "price_now_high50": price_now * (1 + now["hi50"] / 100),
+            "now_source": now["source"],
             "comparables": comps, "explain_A": explain_A, "explain_B": explain_B,
             "forecast": pd.DataFrame(out), "accuracy": acc}

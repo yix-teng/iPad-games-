@@ -95,3 +95,23 @@ years,method,sales,groups,typical_err,within_10,within_20,range80_lo,range80_hi,
 18,"launch, leasehold condo",1213,90,30.78,0.11,0.3,-47.95,44.12,18.16
 19,"launch, leasehold condo",914,79,31.39,0.14,0.26,-48.48,42.36,22.6
 20,"launch, leasehold condo",785,69,46.84,0.09,0.19,-53.58,49.18,44.06
+1,"launch, condo/apartment, TimesFM average",664,70,27.64,0.23,0.39,-19.69,141.12,-18.5
+2,"launch, condo/apartment, TimesFM average",1153,174,20.15,0.26,0.5,-26.05,78.96,-3.46
+3,"launch, condo/apartment, TimesFM average",2339,371,20.61,0.23,0.48,-29.55,78.73,-3.74
+4,"launch, condo/apartment, TimesFM average",5041,705,21.54,0.23,0.46,-24.7,74.04,-9.99
+5,"launch, condo/apartment, TimesFM average",9397,980,20.6,0.24,0.49,-26.5,70.61,-9.8
+6,"launch, condo/apartment, TimesFM average",11874,1077,18.71,0.29,0.53,-24.91,62.0,-4.32
+7,"launch, condo/apartment, TimesFM average",11874,1098,18.08,0.3,0.54,-26.14,53.12,-1.25
+8,"launch, condo/apartment, TimesFM average",10020,1059,17.29,0.31,0.57,-24.79,52.78,-0.5
+9,"launch, condo/apartment, TimesFM average",10223,1038,17.68,0.3,0.55,-28.7,44.21,2.34
+10,"launch, condo/apartment, TimesFM average",9863,1027,16.87,0.31,0.57,-28.22,40.31,2.23
+11,"launch, condo/apartment, TimesFM average",8716,1011,16.69,0.32,0.57,-26.4,43.89,0.04
+12,"launch, condo/apartment, TimesFM average",7736,974,16.92,0.3,0.57,-26.81,41.55,-2.13
+13,"launch, condo/apartment, TimesFM average",6274,929,17.17,0.3,0.57,-27.9,43.92,-3.47
+14,"launch, condo/apartment, TimesFM average",5627,854,18.2,0.28,0.55,-28.14,46.11,-3.68
+15,"launch, condo/apartment, TimesFM average",4567,767,18.95,0.27,0.53,-27.24,49.45,-6.48
+16,"launch, condo/apartment, TimesFM average",3585,690,21.21,0.23,0.47,-28.86,54.99,-8.46
+17,"launch, condo/apartment, TimesFM average",2766,566,23.47,0.19,0.42,-31.85,55.59,-6.33
+18,"launch, condo/apartment, TimesFM average",2389,452,22.58,0.19,0.44,-31.79,56.01,-3.15
+19,"launch, condo/apartment, TimesFM average",1847,374,23.54,0.2,0.41,-32.19,55.29,-3.88
+20,"launch, condo/apartment, TimesFM average",1387,263,28.37,0.16,0.34,-37.76,55.5,9.22

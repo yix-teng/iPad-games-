@@ -44,8 +44,10 @@ for seg in ("sale_type", "tenure_type", "history", "resale_history", "region", "
             e = np.exp(gg[col] - gg.log_psf) - 1
             r[f"{m}_err"] = e.abs().median() * 100
             r[f"{m}_within_10"] = (e.abs() < .1).mean()
-            lo, hi = (np.quantile(np.exp(gg.log_psf - gg[col]), [.1, .9]) - 1) * 100
+            lo, lo50, hi50, hi = (np.quantile(np.exp(gg.log_psf - gg[col]),
+                                              [.1, .25, .75, .9]) - 1) * 100
             r[f"{m}_range80_lo"], r[f"{m}_range80_hi"] = lo, hi
+            r[f"{m}_range50_lo"], r[f"{m}_range50_hi"] = lo50, hi50
         rows.append(r)
 res = pd.DataFrame(rows)
 res.round(2).to_csv(out / "unit_valuation_by_segment.csv", index=False)

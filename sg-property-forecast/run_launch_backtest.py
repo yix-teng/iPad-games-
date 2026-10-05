@@ -60,10 +60,12 @@ r = pd.concat(rows)
 
 def stats(g):
     e = g.err
-    lo, hi = (np.quantile(1 / (1 + e), [0.1, 0.9]) - 1) * 100  # actual / predicted
+    lo, lo50, hi50, hi = (np.quantile(1 / (1 + e), [0.1, 0.25, 0.75, 0.9]) - 1) * 100
     return pd.Series({"launches": g.slug.nunique(), "sales": len(g),
                       "typical_err": e.abs().median() * 100, "within_10": (e.abs() < .1).mean(),
-                      "range80": f"{lo:+.0f}% to {hi:+.0f}%", "bias": e.median() * 100})
+                      "range80": f"{lo:+.0f}% to {hi:+.0f}%", "bias": e.median() * 100,
+                      "range80_lo": lo, "range50_lo": lo50, "range50_hi": hi50,
+                      "range80_hi": hi})
 
 out = [stats(r).rename("all launches 2000-2026")]
 for seg in ("tenure", "region", "is_ec", "how"):

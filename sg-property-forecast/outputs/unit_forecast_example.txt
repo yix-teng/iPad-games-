@@ -21,19 +21,21 @@ LightGBM model (contribution of each factor):
   sale type                                                                 -0.4%   -> $2,330 psf
 
 Resale value today (LightGBM): $2,330 psf x 786 sqft = S$1,830,755
-  Likely range (80%): S$1,727,738 - S$2,007,148   [typical error 4.0% on 4,671 resales, 2026-04..2026-09 test]
+  Likely (50%):    S$1,796,886 - S$1,935,657
+  Plausible (80%): S$1,727,683 - S$2,007,423   [typical error 4.0% on 4,675 resales, 2026-04..2026-09 test]
 
-Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
-          future dollars                    80% range    today's $   market  backtest: typical error, within 10%
-  + 1 yr  S$   1,895,518  (S$ 1,681,514 - S$ 2,382,097)  S$1,865,851    +3.5%    8.0%, 58% (29 start years)
-  + 2 yr  S$   1,971,147  (S$ 1,650,836 - S$ 2,621,232)  S$1,909,929    +7.7%   11.2%, 46% (28 start years)
-  + 3 yr  S$   2,061,161  (S$ 1,657,586 - S$ 2,846,670)  S$1,965,890   +12.6%   13.6%, 38% (27 start years)
-  + 5 yr  S$   2,253,709  (S$ 1,648,814 - S$ 3,399,270)  S$2,082,778   +23.1%   19.3%, 27% (25 start years)
-  +10 yr  S$   2,817,491  (S$ 1,700,638 - S$ 4,069,866)  S$2,406,318   +53.9%   28.0%, 17% (20 start years)
-  +15 yr  S$   3,522,307  (S$ 1,992,217 - S$ 5,138,342)  S$2,780,115   +92.4%   22.8%, 22% (15 start years)
-  +20 yr  S$   4,403,438  (S$ 1,393,248 - S$ 6,813,880)  S$3,211,979  +140.5%   38.3%, 13% (10 start years)
+Forecast. Likely = where 50% of actual resales landed in the backtest for this pricing path, plausible = 80%:
+          future dollars               likely (50%)              plausible (80%)    today's $   market  (current  TimesFM)  backtest: typical error, within 10%
+  + 1 yr  S$   1,863,783  (S$1,825,389 - S$2,032,642)  (S$ 1,729,591 - S$ 2,164,411)  S$1,834,613    +1.8%  (  +3.5%   +0.1%)    7.9%, 59% (29 start years)
+  + 2 yr  S$   1,900,730  (S$1,832,873 - S$2,154,857)  (S$ 1,708,566 - S$ 2,343,599)  S$1,841,698    +3.8%  (  +7.7%   +0.1%)   11.0%, 46% (28 start years)
+  + 3 yr  S$   1,945,501  (S$1,864,763 - S$2,265,536)  (S$ 1,721,185 - S$ 2,500,748)  S$1,855,576    +6.3%  ( +12.6%   +0.3%)   13.4%, 39% (27 start years)
+  + 5 yr  S$   2,041,811  (S$1,881,325 - S$2,430,776)  (S$ 1,704,912 - S$ 2,769,308)  S$1,886,951   +11.5%  ( +23.1%   +1.0%)   16.9%, 31% (25 start years)
+  +10 yr  S$   2,351,595  (S$1,990,390 - S$2,682,935)  (S$ 1,750,292 - S$ 3,150,902)  S$2,008,412   +28.4%  ( +53.9%   +7.2%)   19.4%, 26% (20 start years)
+  +15 yr  S$   2,744,279  (S$2,645,760 - S$3,723,987)  (S$ 2,128,737 - S$ 4,169,109)  S$2,166,027   +49.9%  ( +92.4%  +16.8%)   21.1%, 23% (15 start years)
+  +20 yr  S$   3,146,907  (S$2,535,148 - S$4,572,770)  (S$ 1,959,894 - S$ 5,272,957)  S$2,295,433   +71.9%  (+140.5%  +22.8%)   30.4%, 16% (10 start years)
 
-  Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
+  Market path (URA Non-Landed index): average of the current path (short-term index model for years 1-2, then
+  base-case income growth) and Google TimesFM 3.0's forecast. Ranges are from the backtest of this averaged path.
 
 === LAUNCH PHASE: grand-dunman #10-05
 grand-dunman #10-05: 2,131 sqft, floor 10, condo, leasehold (95 yrs left), TOP in 1 yrs, RCR, D15
@@ -57,20 +59,22 @@ LightGBM model (contribution of each factor):
   sale type                                                                 -0.8%   -> $2,405 psf
 
 New-sale price today (this project's recent launch prices): $2,433 psf x 2,131 sqft = S$5,184,326
-  Likely range (80%): S$4,742,103 - S$5,464,280   [typical error 2.2% on new sales, Apr-Sep 2026 test]
+  Likely (50%):    S$5,097,748 - S$5,321,193
+  Plausible (80%): S$4,742,103 - S$5,464,280   [typical error 2.2% on 3,058 new sales, Apr-Sep 2026 test]
   Resale-equivalent value today (no new-launch premium): S$5,125,116; forecasts below are resale values.
 
-Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
-          future dollars                    80% range    today's $   market  backtest: typical error, within 10%
-  + 1 yr  S$   5,306,418  (S$ 4,483,923 - S$ 7,168,971)  S$5,223,366    +3.5%   10.3%, 49% (29 start years)
-  + 2 yr  S$   5,518,139  (S$ 4,460,312 - S$ 7,370,579)  S$5,346,761    +7.7%   10.7%, 48% (28 start years)
-  + 3 yr  S$   5,770,130  (S$ 4,532,437 - S$ 7,915,464)  S$5,503,421   +12.6%   12.8%, 41% (27 start years)
-  + 5 yr  S$   6,309,159  (S$ 4,482,026 - S$ 9,177,302)  S$5,830,646   +23.1%   18.9%, 29% (25 start years)
-  +10 yr  S$   7,887,441  (S$ 4,431,164 - S$10,502,128)  S$6,736,379   +53.9%   31.9%, 14% (20 start years)
-  +15 yr  S$   9,860,542  (S$ 4,799,126 - S$13,366,951)  S$7,782,809   +92.4%   24.8%, 21% (15 start years)
-  +20 yr  S$  12,327,229  (S$ 3,452,857 - S$16,692,300)  S$8,991,792  +140.5%   49.8%, 14% (10 start years)
+Forecast. Likely = where 50% of actual resales landed in the backtest for this pricing path, plausible = 80%:
+          future dollars               likely (50%)              plausible (80%)    today's $   market  (current  TimesFM)  backtest: typical error, within 10%
+  + 1 yr  S$   5,217,578  (S$5,017,223 - S$5,774,815)  (S$ 4,720,864 - S$ 6,320,052)  S$5,135,916    +1.8%  (  +3.5%   +0.1%)    9.8%, 51% (29 start years)
+  + 2 yr  S$   5,321,008  (S$5,082,094 - S$5,863,218)  (S$ 4,760,174 - S$ 6,459,703)  S$5,155,751    +3.8%  (  +7.7%   +0.1%)   10.2%, 49% (28 start years)
+  + 3 yr  S$   5,446,345  (S$5,139,171 - S$5,997,515)  (S$ 4,751,391 - S$ 6,721,879)  S$5,194,602    +6.3%  ( +12.6%   +0.3%)   12.1%, 44% (27 start years)
+  + 5 yr  S$   5,715,959  (S$5,104,351 - S$6,304,131)  (S$ 4,661,365 - S$ 7,238,690)  S$5,282,437   +11.5%  ( +23.1%   +1.0%)   15.3%, 34% (25 start years)
+  +10 yr  S$   6,583,185  (S$5,232,974 - S$6,972,251)  (S$ 4,675,378 - S$ 8,213,182)  S$5,622,461   +28.4%  ( +53.9%   +7.2%)   20.8%, 24% (20 start years)
+  +15 yr  S$   7,682,488  (S$6,454,058 - S$9,691,458)  (S$ 5,211,800 - S$11,103,500)  S$6,063,697   +49.9%  ( +92.4%  +16.8%)   20.3%, 25% (15 start years)
+  +20 yr  S$   8,809,625  (S$6,288,311 - S$11,093,080)  (S$ 4,880,533 - S$13,310,463)  S$6,425,963   +71.9%  (+140.5%  +22.8%)   31.6%, 17% (10 start years)
 
-  Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
+  Market path (URA Non-Landed index): average of the current path (short-term index model for years 1-2, then
+  base-case income growth) and Google TimesFM 3.0's forecast. Ranges are from the backtest of this averaged path.
 
 === EC: westwood-residences #08-12
 westwood-residences #08-12: 1,033 sqft, floor 8, EC, leasehold (87 yrs left), building age 6 yrs, OCR, D22
@@ -95,19 +99,21 @@ LightGBM model (contribution of each factor):
   sale type                                                                 -0.3%   -> $1,442 psf
 
 Resale value today (LightGBM): $1,442 psf x 1,033 sqft = S$1,490,008
-  Likely range (80%): S$1,406,165 - S$1,633,570   [typical error 4.0% on 4,671 resales, 2026-04..2026-09 test]
+  Likely (50%):    S$1,462,443 - S$1,575,386
+  Plausible (80%): S$1,406,121 - S$1,633,794   [typical error 4.0% on 4,675 resales, 2026-04..2026-09 test]
 
-Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
-          future dollars                    80% range    today's $   market  EC adj  backtest: typical error, within 10%
-  + 1 yr  S$   1,565,834  (S$ 1,465,621 - S$ 1,908,595)  S$1,541,327    +3.5%   +1.5%    8.7%, 57% (27 start years)
-  + 2 yr  S$   1,628,309  (S$ 1,472,643 - S$ 2,109,963)  S$1,577,738    +7.7%   +1.5%   12.4%, 40% (27 start years)
-  + 3 yr  S$   1,702,667  (S$ 1,497,496 - S$ 2,284,469)  S$1,623,966   +12.6%   +1.5%   14.0%, 33% (27 start years)
-  + 5 yr  S$   1,869,376  (S$ 1,470,264 - S$ 2,628,903)  S$1,727,595   +23.1%   +1.9%   16.8%, 26% (25 start years)
-  +10 yr  S$   2,145,328  (S$ 1,262,955 - S$ 3,088,844)  S$1,832,248   +53.9%   -6.4%   21.3%, 26% (20 start years)
-  +15 yr  S$   2,689,939  (S$ 1,607,239 - S$ 3,892,880)  S$2,123,137   +92.4%   -6.2%   23.5%, 19% (15 start years)
-  +20 yr  S$   3,554,612  (S$ 1,276,461 - S$ 5,450,998)  S$2,592,824  +140.5%   -0.8%   40.3%, 17% (10 start years)
+Forecast. Likely = where 50% of actual resales landed in the backtest for this pricing path, plausible = 80%:
+          future dollars               likely (50%)              plausible (80%)    today's $   market  (current  TimesFM)  EC adj  backtest: typical error, within 10%
+  + 1 yr  S$   1,539,619  (S$1,574,106 - S$1,760,862)  (S$ 1,503,438 - S$ 1,856,472)  S$1,515,522    +1.8%  (  +3.5%   +0.1%)   +1.5%    8.9%, 55% (27 start years)
+  + 2 yr  S$   1,570,139  (S$1,668,273 - S$1,930,643)  (S$ 1,535,125 - S$ 2,036,156)  S$1,521,375    +3.8%  (  +7.7%   +0.1%)   +1.5%   14.0%, 33% (27 start years)
+  + 3 yr  S$   1,607,124  (S$1,741,801 - S$2,043,940)  (S$ 1,583,339 - S$ 2,173,957)  S$1,532,839    +6.3%  ( +12.6%   +0.3%)   +1.5%   16.1%, 29% (27 start years)
+  + 5 yr  S$   1,693,613  (S$1,795,738 - S$2,202,544)  (S$ 1,567,947 - S$ 2,398,157)  S$1,565,163   +11.5%  ( +23.1%   +1.0%)   +1.9%   17.5%, 26% (25 start years)
+  +10 yr  S$   1,790,580  (S$1,730,596 - S$2,118,435)  (S$ 1,521,814 - S$ 2,361,954)  S$1,529,270   +28.4%  ( +53.9%   +7.2%)   -6.4%   16.2%, 33% (20 start years)
+  +15 yr  S$   2,095,770  (S$2,203,073 - S$2,989,406)  (S$ 1,734,669 - S$ 3,230,210)  S$1,654,166   +49.9%  ( +92.4%  +16.8%)   -6.2%   25.1%, 15% (15 start years)
+  +20 yr  S$   2,540,295  (S$1,635,442 - S$3,580,800)  (S$ 1,305,458 - S$ 4,144,238)  S$1,852,956   +71.9%  (+140.5%  +22.8%)   -0.8%   38.0%, 18% (10 start years)
 
-  Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
+  Market path (URA Non-Landed index): average of the current path (short-term index model for years 1-2, then
+  base-case income growth) and Google TimesFM 3.0's forecast. Ranges are from the backtest of this averaged path.
 
 === BRAND-NEW: postal 158736, leasehold, TOP 2030, 850 sqft
 new #15-03: 850 sqft, floor 15, condo, leasehold (99 yrs left), TOP in 3 yrs, RCR, D3
@@ -121,17 +127,52 @@ Comparable launches (within 3 km, last 12 months, same tenure and EC status), ba
   bloomsbury-residences                  2.4 km   141 new sales  $2,337 psf
 
 Launch price today (comparable launches): $2,758 psf x 850 sqft = S$2,343,879
-  Likely range (80%): S$1,921,981 - S$3,023,604   [typical error 11.4% on 1,551 launches since 2000]
+  Likely (50%):    S$2,142,071 - S$2,689,133
+  Plausible (80%): S$1,913,777 - S$3,035,089   [typical error 11.4% on 1,551 launches since 2000]
   Resale-equivalent value today (no new-launch premium): S$2,220,459; forecasts below are resale values.
 
-Forecast (likely range = where 80% of actual resales landed in the backtest for this pricing path):
-          future dollars                    80% range    today's $   market  backtest: typical error, within 10%
-  + 1 yr  S$   2,299,008  (S$ 1,559,417 - S$ 4,198,448)  S$2,263,026    +3.5%   20.3%, 26% (371 launches) [from 3-yr]
-  + 2 yr  S$   2,390,736  (S$ 1,621,636 - S$ 4,365,962)  S$2,316,486    +7.7%   20.3%, 26% (371 launches) [from 3-yr]
-  + 3 yr  S$   2,499,911  (S$ 1,695,690 - S$ 4,565,338)  S$2,384,359   +12.6%   20.3%, 26% (371 launches)
-  + 5 yr  S$   2,733,446  (S$ 1,937,740 - S$ 4,677,472)  S$2,526,130   +23.1%   21.6%, 24% (980 launches)
-  +10 yr  S$   3,417,237  (S$ 2,063,670 - S$ 4,536,724)  S$2,918,539   +53.9%   26.7%, 18% (1027 launches)
-  +15 yr  S$   4,272,084  (S$ 2,510,704 - S$ 6,152,655)  S$3,371,905   +92.4%   23.3%, 23% (767 launches)
-  +20 yr  S$   5,340,777  (S$ 2,577,459 - S$ 8,162,844)  S$3,895,698  +140.5%   38.8%, 11% (263 launches)
+Forecast. Likely = where 50% of actual resales landed in the backtest for this pricing path, plausible = 80%:
+          future dollars               likely (50%)              plausible (80%)    today's $   market  (current  TimesFM)  backtest: typical error, within 10%
+  + 1 yr  S$   2,260,518  (S$2,135,285 - S$2,857,068)  (S$ 1,798,694 - S$ 3,726,237)  S$2,225,138    +1.8%  (  +3.5%   +0.1%)   20.6%, 23% (371 launches) [from 3-yr]
+  + 2 yr  S$   2,305,329  (S$2,177,614 - S$2,913,705)  (S$ 1,834,350 - S$ 3,800,104)  S$2,233,731    +3.8%  (  +7.7%   +0.1%)   20.6%, 23% (371 launches) [from 3-yr]
+  + 3 yr  S$   2,359,631  (S$2,228,908 - S$2,982,338)  (S$ 1,877,559 - S$ 3,889,616)  S$2,250,563    +6.3%  ( +12.6%   +0.3%)   20.6%, 23% (371 launches)
+  + 5 yr  S$   2,476,442  (S$2,329,836 - S$3,195,353)  (S$ 2,056,932 - S$ 3,743,389)  S$2,288,618   +11.5%  ( +23.1%   +1.0%)   20.6%, 24% (980 launches)
+  +10 yr  S$   2,852,168  (S$2,373,289 - S$3,151,931)  (S$ 2,051,279 - S$ 3,724,646)  S$2,435,934   +28.4%  ( +53.9%   +7.2%)   16.9%, 31% (1027 launches)
+  +15 yr  S$   3,328,441  (S$2,897,408 - S$4,211,477)  (S$ 2,354,539 - S$ 4,919,769)  S$2,627,099   +49.9%  ( +92.4%  +16.8%)   18.9%, 27% (767 launches)
+  +20 yr  S$   3,816,774  (S$3,010,671 - S$5,339,285)  (S$ 2,476,323 - S$ 6,281,647)  S$2,784,051   +71.9%  (+140.5%  +22.8%)   28.4%, 16% (263 launches)
 
-  Market path: short-term index model for years 1-2, then base-case income growth (URA Non-Landed index).
+  Market path (URA Non-Landed index): average of the current path (short-term index model for years 1-2, then
+  base-case income growth) and Google TimesFM 3.0's forecast. Ranges are from the backtest of this averaged path.
+
+=== UNKNOWN COMPLETED: postal 158736, leasehold, TOP 2021, 786 sqft (treated as not in data)
+new #12-05: 786 sqft, floor 12, condo, leasehold (93 yrs left), building age 6 yrs, RCR, D3
+Pricing path: unknown completed project
+
+LightGBM model (contribution of each factor):
+  average condo in training data                                                    -> $1,066 psf
+  project & location                                                       +10.8%   -> $1,181 psf
+  market level now vs 1995-2026 average                                    +63.2%   -> $1,928 psf
+  floor                                                                     +1.1%   -> $1,949 psf
+  size                                                                      +9.2%   -> $2,128 psf
+  building age                                                              -1.9%   -> $2,088 psf
+  lease left                                                                +2.2%   -> $2,134 psf
+  tenure                                                                    -0.3%   -> $2,129 psf
+  EC status                                                                 +0.2%   -> $2,132 psf
+  sale type                                                                 -0.3%   -> $2,125 psf
+
+Resale value today (LightGBM, location and building features; project not in the data): $2,125 psf x 786 sqft = S$1,670,064
+  Likely (50%):    S$1,428,072 - S$1,826,716
+  Plausible (80%): S$1,294,968 - S$2,082,236   [typical error 12.8% on 10,166 resales of 1,522 projects the model had not seen (2008, 2013, 2018)]
+
+Forecast. Likely = where 50% of actual resales landed in the backtest for this pricing path, plausible = 80%:
+          future dollars               likely (50%)              plausible (80%)    today's $   market  (current  TimesFM)  backtest: typical error, within 10%
+  + 1 yr  S$   1,700,193  (S$1,636,096 - S$2,130,512)  (S$ 1,436,153 - S$ 2,423,455)  S$1,673,583    +1.8%  (  +3.5%   +0.1%)   14.6%, 35% (1930 projects)
+  + 2 yr  S$   1,733,897  (S$1,625,008 - S$2,272,445)  (S$ 1,419,715 - S$ 2,620,612)  S$1,680,047    +3.8%  (  +7.7%   +0.1%)   17.4%, 29% (1970 projects)
+  + 3 yr  S$   1,774,739  (S$1,638,794 - S$2,315,502)  (S$ 1,432,392 - S$ 2,672,934)  S$1,692,706    +6.3%  ( +12.6%   +0.3%)   17.1%, 31% (1942 projects)
+  + 5 yr  S$   1,862,595  (S$1,754,565 - S$2,396,415)  (S$ 1,495,850 - S$ 2,705,233)  S$1,721,328   +11.5%  ( +23.1%   +1.0%)   17.1%, 31% (1719 projects)
+  +10 yr  S$   2,145,188  (S$1,871,248 - S$2,618,631)  (S$ 1,653,940 - S$ 3,054,748)  S$1,832,128   +28.4%  ( +53.9%   +7.2%)   16.7%, 31% (1151 projects)
+  +15 yr  S$   2,503,406  (S$2,183,721 - S$3,055,907)  (S$ 1,930,126 - S$ 3,564,850)  S$1,975,908   +49.9%  ( +92.4%  +16.8%)   16.7%, 31% (1151 projects) [from 10-yr]
+  +20 yr  S$   2,870,693  (S$2,504,106 - S$3,504,255)  (S$ 2,213,305 - S$ 4,087,867)  S$2,093,956   +71.9%  (+140.5%  +22.8%)   16.7%, 31% (1151 projects) [from 10-yr]
+
+  Market path (URA Non-Landed index): average of the current path (short-term index model for years 1-2, then
+  base-case income growth) and Google TimesFM 3.0's forecast. Ranges are from the backtest of this averaged path.

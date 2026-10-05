@@ -6,3 +6,4 @@ data/propertynoob/
 data/geocode.json
 data/mrt_exits.geojson
 data/market_path_*.csv
+data/xcountry/
