@@ -1,11 +1,12 @@
 # Singapore private property price forecast
 
-Three complementary models:
+Four complementary models:
 
 | | Question | Data | Model |
 |---|---|---|---|
 | **Index model** (`run_index_forecast.py`) | Where is the market going over the next 1–8 quarters? | URA Private Residential Property Price Index, 1975Q1–present (data.gov.sg, no key needed) | ARIMA, ridge, LightGBM, and an ensemble, with direct multi-horizon targets. Compared against random-walk and drift baselines |
 | **Long-run scenarios** (`run_long_run.py`) | Where could prices be in 3–10 years? | Same index + SingStat nominal GDP, population and CPI (data.gov.sg) | Rule: prices grow with incomes. The scenarios are real income growth plus inflation, results come in future dollars and today's dollars, and the range comes from how far prices deviated from incomes in past decades |
+| **Unit forecast** (`run_unit_model.py`, `run_unit_forecast.py`) | What is this condo unit worth now, and in 1–10 years? | ~600k condo sales since 1995 from propertynoob.com (not committed), OneMap geocoding, LTA MRT exits | Valuation from a transparent model and LightGBM, times the market path, times how condos of the same age and lease kept up with their region |
 | **Hedonic model** (`run_hedonic.py`) | What is a specific unit worth? | URA private residential transactions (last ~5 yrs, [free URA API key](https://eservice.ura.gov.sg/maps/api/reg.html)) | LightGBM on log price per sqm. Features: project, segment (CCR/RCR/OCR), district, area, floor, tenure and remaining lease, location, sale date |
 
 To combine them, the hedonic model prices a unit at today's market level and the index
@@ -17,6 +18,9 @@ forecast rolls that price forward (`hedonic.predict_future(model, units, index_g
 pip install -r requirements.txt
 python run_index_forecast.py                       # All Residential; also --series Landed / Non-Landed
 python run_long_run.py                             # 3/5/10-year scenarios; --base 0.03 --inflation 0.02 etc.
+python -m sgpf.propertynoob                        # collect condo sales (~2.5 h, resumable)
+python run_unit_model.py                           # fit + test unit models
+python run_unit_forecast.py artra "#12-05"         # one unit
 python run_hedonic.py --ura-key YOUR_ACCESS_KEY    # needs a URA key
 python -m pytest -q tests
 ```
@@ -139,13 +143,108 @@ inside the historical range.
 
 ![long-run scenarios](outputs/long_run_scenarios.png)
 
+## Unit forecast (individual condos)
+
+```
+value in N years = value today                 (valuation model)
+                 × market growth to year N     (URA Non-Landed index: short-term model for
+                                                years 1–2, then base-case income growth)
+                 × relative performance        (how condos of this age and lease kept up
+                                                with their region, per year)
+```
+
+### Data
+
+603,137 single-unit condo, apartment and EC sales in 2,736 projects, 1995-01 to 2026-09, from
+propertynoob.com. The feed is labelled `"source": "huttons"`. It is collected for personal
+analysis and kept out of git. Project details come from the same site (tenure and lease
+start, TOP, district, address). Location comes from OneMap and LTA MRT exits (91% of
+postcodes geocoded).
+
+### Valuation: two models, both explainable
+
+* **Transparent model:** the project's recent sales (weighted toward the last ~6 months),
+  then lookup-table adjustments for the region's market level, stack, floor, size, EC age
+  and sale type. Each line in its breakdown is a % effect, for example:
+
+  | Floor | 1–2 | 3–5 | 6–10 | 11–15 | 16–20 | 21–25 | 26–30 | 31–40 | 41+ |
+  |---|---|---|---|---|---|---|---|---|---|
+  | Effect | −4.7% | −2.6% | ref | +2.1% | +4.2% | +7.0% | +9.9% | +13.3% | +20.3% |
+
+  | Size (sqft) | <500 | 500–650 | 650–800 | 800–1k | 1k–1.25k | 1.25k–1.5k | 1.5k–2k | 2k–3k | 3k+ |
+  |---|---|---|---|---|---|---|---|---|---|
+  | Effect on $psf | +24.5% | +12.6% | +5.5% | ref | −5.4% | −9.4% | −14.9% | −21.7% | −27.5% |
+
+  New-launch sales carry a +5.6% premium over resales. ECs sell 18% below comparable condos
+  before TOP and 13% below in their first 3 years.
+* **LightGBM:** the same information plus location (district, coordinates, distance to MRT
+  and CBD). Each valuation comes with the contribution of each factor (SHAP values).
+
+**Accuracy.** The models were trained on sales up to 2026-03 and tested on 6,183 sales from
+2026-04 to 2026-09. The way the two models are combined was chosen on a separate window
+(2025-10 to 2026-03), not on the test window.
+
+| Typical error (median), test window | New sales | Resales | Resales within 10% | 1 in 10 resales off by more than |
+|---|---|---|---|---|
+| Transparent | **2.2%** | 5.8% | 74% | 15.2% |
+| LightGBM | 8.4% | **4.0%** | **88%** | 10.5% |
+
+A unit forecast values the unit as a resale, so it uses LightGBM. The transparent breakdown
+is shown alongside it as the explanation in plain lookup terms.
+
+### Ageing and lease: did condos keep up with their region?
+
+The model compares each project's growth over 5 years with the median project in its
+region over the same years. Ageing and lease run-down cannot be separated from market
+movement inside a valuation model, because age, lease and time all advance together; this
+comparison sidesteps that.
+
+| Group (% per year vs region, 5-year spans) | Effect | Projects |
+|---|---|---|
+| Freehold, 0–5 yrs old | −0.7% | 771 |
+| Leasehold, 0–5 yrs old, 90+ yrs left | −0.9% | 335 |
+| Leasehold, 5–15 yrs old, 80–90 yrs left | 0.0% to −0.3% | 181–269 |
+| Freehold, 15–30 yrs old | +1.2% to +1.3% | 153–218 |
+| Leasehold, 20–30 yrs old, 70–80 yrs left | +1.2% | 92 |
+| Leasehold, 30+ yrs old, under 60 yrs left | +0.2% | 18 |
+
+New condos lag their region as the launch premium fades. In this data, older leaseholds
+have **not** clearly lagged. Two caveats: the groups with short leases are small, and condos
+already sold en bloc are missing from the site. Survivors, and old condos that buyers expect
+to go en bloc, may make old condos look better than a typical old condo really did.
+
+### Ranges
+
+Each range combines three independent sources in log terms, as the square root of the sum
+of squares:
+
+1. Valuation error: the 10th–90th percentile of resale errors in the test window.
+2. The market range at that horizon.
+3. Project-to-project spread within the age/lease group, scaled from the 5-year spans
+   assuming deviations build up evenly.
+
+Only the valuation part has been tested on its own. The combined ranges have not been
+backtested.
+
+### Example: Artra #12-05 (786 sqft, 12th floor, 99-yr lease from 2016, RCR)
+
+See `outputs/unit_forecast_example.txt`. Value today is **S$1.83M** (80% range S$1.73M–2.01M).
+Same-size units on floors 25 and 33 sold for S$1.945M–1.949M in mid-2026.
+
+| Horizon | Future dollars | 80% range | Today's dollars |
+|---|---|---|---|
+| 1 yr | S$1.89M | 1.71–2.13M | S$1.87M |
+| 5 yr | S$2.25M | 1.67–3.01M | S$2.08M |
+| 10 yr | S$2.78M | 1.83–3.85M | S$2.37M |
+
 ## Possible next steps
 
 * Add macro drivers to the short-term model (3M SORA or mortgage rates, unemployment,
   new-launch supply and the unsold pipeline, HDB resale index). This is likely the biggest
   gain, but the drivers must be forecast or lagged to avoid look-ahead.
-* Estimate lease decay for individual units from transaction data (needs a URA key) so that
-  long-run scenarios can be applied per unit.
+* Backtest the combined unit-forecast ranges, for example by valuing units as at 2016 and
+  comparing with their 2021 resale prices.
+* Add en-bloc history (demolished projects) to remove survivorship bias from the ageing table.
 * Forecast the region sub-indices (CCR/RCR/OCR) or a monthly index built from transactions,
   which gives about 3× more data points.
 * Add amenity features to the hedonic model (distance to MRT stations and good schools).
