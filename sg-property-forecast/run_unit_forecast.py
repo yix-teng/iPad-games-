@@ -87,6 +87,8 @@ print(f"  {'':>7} {'future dollars':>14}  {'likely (50%)':>25}  {'plausible (80%
       f"  {todays:>11}  {'market':>7}"
       f" {'(current':>9} {'TimesFM)':>9}"
       + ("  EC adj" if row.is_ec else "") + "  backtest: typical error, within 10%")
+group_label = {"brand-new launch": "launches",
+               "unknown completed project": "projects"}.get(r["mode"], "start years")
 for _, x in r["forecast"].iterrows():
     ec = f"  {x.ec_adjust_pct:+5.1f}%" if row.is_ec else ""
     note = f" [from {x.backtest_years:.0f}-yr]" if x.backtest_years != x.years else ""
@@ -95,7 +97,7 @@ for _, x in r["forecast"].iterrows():
           f"  S${x.value_todays_dollars:>9,.0f}  {x.market_growth_pct:+6.1f}%"
           f"  ({x.current_path_pct:+6.1f}% {x.timesfm_pct:+6.1f}%){ec}"
           f"   {x.backtest_err_pct:4.1f}%, {x.backtest_within_10pct:.0%}"
-          f" ({x.backtest_groups:.0f} {'launches' if r['mode'] == 'brand-new launch' else 'start years'})"
+          f" ({x.backtest_groups:.0f} {group_label})"
           f"{note}")
 print("\n  Market path (URA Non-Landed index): average of the current path (short-term index"
       " model for years 1-2, then\n  base-case income growth) and Google TimesFM 3.0's"

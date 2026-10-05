@@ -279,7 +279,7 @@ Full tables for every year: `outputs/unit_backtest_by_horizon.csv` (all start ye
 
 ## Pricing paths in the unit forecast
 
-`run_unit_forecast.py` picks one of three pricing paths. ECs also get the EC age adjustment.
+`run_unit_forecast.py` picks one of four pricing paths. ECs also get the EC age adjustment.
 Each path's 80% ranges come from its own backtest.
 
 | Path | When | Price today | Today: typical error, 80% range |
@@ -287,6 +287,7 @@ Each path's 80% ranges come from its own backtest.
 | **Resale** | Project has resales | LightGBM resale value | 4.0%, −6% to +10% (4,675 resales, Apr–Sep 2026) |
 | **Launch phase** | Project is selling new units and has no resales yet | Transparent model's new-sale price (the project's own recent launch prices) | 2.2%, −9% to +5% (1,266 new sales, Apr–Sep 2026) |
 | **Brand-new launch** | Project has no transactions. Run `python run_unit_forecast.py new "#15-03" --area 850 --postal 579837 --tenure leasehold --top 2030 [--ec]` | Comparable launches within 3 km in the last 12 months, same tenure and EC status, adjusted for floor and size (`sgpf/launch.py`). The comparables are listed in the output | 11.4%, −18% to +29% (1,551 launches since 2000) |
+| **Unknown completed project** | Project has no transactions and its TOP year is in the past (same command, with a past `--top`) | LightGBM from location and building features | 12.8% typical error (unseen-project test) |
 
 For the launch paths, forecasts are of the **resale** value (no new-launch premium), because
 the backtests score against later resales.
@@ -302,66 +303,103 @@ forecasts were too low by 12–17% at 2–5 years.
 | Without adjustment | 8.6% | 13.4% | 16.6% | 20.6% | 22.2% | 20.9% | 22.2% | 41.6% |
 | **With adjustment (used)** | 8.7% | 12.4% | 14.0% | 16.8% | 20.1% | 21.3% | 23.5% | 40.3% |
 
-### Forecast error and range by path
+### Forecast error and bands by path
 
-All with the adopted market path (average of the current path and TimesFM 3.0). Income-rule
-figures are kept in the `*_income_rule.csv` files and in the earlier rows of
-`outputs/ec_backtest.csv` and `outputs/launch_forecast_backtest.csv`.
+Each forecast shows two bands built from the backtest of its pricing path:
 
-**Resale (condo/apartment)**, LightGBM valuation (start years 1997–2025):
+* **Likely (50%):** the 25th–75th percentile of actual/forecast.
+* **Plausible (80%):** the 10th–90th percentile.
 
-| Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
+Both use the adopted market path. The bands are **recency-weighted**: start years are weighted by
+0.5^(age / 5 years). The half-life was chosen in a walk-forward test (`run_band_calibration.py`);
+coverage of the bands, built only from earlier start years (likely / plausible; targets 50% /
+80%), was:
+
+| Years ahead | Equal weights | 10-yr half-life | 5-yr half-life (used) |
+|---|---|---|---|
+| 1 | 66% / 92% | 62% / 90% | **58% / 88%** |
+| 2 | 61% / 90% | 57% / 88% | **54% / 86%** |
+| 3 | 51% / 80% | 47% / 79% | **44% / 77%** |
+| 5 | 48% / 73% | 40% / 72% | **35% / 69%** |
+| 7 | 67% / 90% | 56% / 89% | **46% / 88%** |
+| 10 | 72% / 90% | 71% / 89% | **69% / 89%** |
+
+The gain is small. The 5-year half-life is better at 1–2 and 7 years and slightly too narrow at
+5 years. The weighting also shifts the bands toward the errors of recent years: EC bands at 1–5
+years sit mostly above the forecast, because EC prices recently ran ahead of forecasts.
+
+**Today's value**
+
+| Path | Typical error | Likely (50%) | Plausible (80%) |
+|---|---|---|---|
+| Resale | 4.0% | -2% to +6% | -6% to +10% |
+| Launch phase | 2.2% | -2% to +3% | -9% to +5% |
+| Brand-new launch | 11.4% | -9% to +15% | -18% to +29% |
+| Unknown completed project | 12.8% | -14% to +9% | -22% to +25% |
+
+**Resale (condo/apartment)**, start years 1997–2025:
+
+| Years ahead | Typical error | Likely (50%) | Plausible (80%) | Start years |
 |---|---|---|---|---|
-| 1 | 7.9% | 59% | -10% to +26% | 29 |
-| 2 | 11.0% | 46% | -14% to +34% | 28 |
-| 3 | 13.4% | 39% | -17% to +40% | 27 |
-| 5 | 16.9% | 31% | -22% to +51% | 25 |
-| 10 | 19.4% | 26% | -29% to +46% | 20 |
-| 15 | 21.1% | 23% | -25% to +51% | 15 |
-| 20 | 30.4% | 16% | -44% to +59% | 10 |
+| 1 | 7.9% | -2% to +9% | -7% to +16% | 29 |
+| 2 | 11.0% | -4% to +13% | -10% to +23% | 28 |
+| 3 | 13.4% | -4% to +16% | -12% to +29% | 27 |
+| 5 | 16.9% | -8% to +19% | -16% to +36% | 25 |
+| 10 | 19.4% | -15% to +14% | -26% to +34% | 20 |
+| 15 | 21.1% | -4% to +36% | -22% to +52% | 15 |
+| 20 | 30.4% | -19% to +45% | -38% to +68% | 10 |
 
 **Launch phase** (bought before completion, non-EC):
 
-| Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
+| Years ahead | Typical error | Likely (50%) | Plausible (80%) | Start years |
 |---|---|---|---|---|
-| 1 | 9.8% | 51% | -14% to +36% | 29 |
-| 2 | 10.2% | 49% | -16% to +35% | 28 |
-| 3 | 12.1% | 44% | -18% to +39% | 27 |
-| 5 | 15.3% | 34% | -24% to +46% | 25 |
-| 10 | 20.8% | 24% | -33% to +36% | 20 |
-| 15 | 20.3% | 25% | -32% to +43% | 15 |
-| 20 | 31.6% | 17% | -49% to +39% | 10 |
+| 1 | 9.8% | -4% to +11% | -10% to +21% | 29 |
+| 2 | 10.2% | -4% to +10% | -11% to +21% | 28 |
+| 3 | 12.1% | -6% to +10% | -13% to +23% | 27 |
+| 5 | 15.3% | -11% to +10% | -18% to +27% | 25 |
+| 10 | 20.8% | -21% to +6% | -29% to +25% | 20 |
+| 15 | 20.3% | -16% to +26% | -32% to +45% | 15 |
+| 20 | 31.6% | -29% to +26% | -45% to +51% | 10 |
 
-**EC** (resale or launch phase, with EC adjustment). With the averaged path, EC error is a
-little higher at 2–5 years than with the income-rule path (e.g. 3 yrs 16.1% vs 14.0%), and lower
-at 7–10 years (10 yrs 16.2% vs 21.3%). One market path is used for all units rather than
-choosing per segment from these results:
+**EC** (with EC adjustment):
 
-| Years ahead | Typical error | Within 10% | 80% of actual within | Start years |
+| Years ahead | Typical error | Likely (50%) | Plausible (80%) | Start years |
 |---|---|---|---|---|
-| 1 | 8.9% | 55% | -5% to +23% | 27 |
-| 2 | 14.0% | 33% | -8% to +32% | 27 |
-| 3 | 16.1% | 29% | -10% to +38% | 27 |
-| 5 | 17.5% | 26% | -16% to +47% | 25 |
-| 10 | 16.2% | 33% | -31% to +46% | 20 |
-| 15 | 25.1% | 15% | -31% to +52% | 15 |
-| 20 | 38.0% | 18% | -54% to +56% | 10 |
+| 1 | 8.9% | +2% to +14% | -2% to +21% | 27 |
+| 2 | 14.0% | +6% to +23% | -2% to +30% | 27 |
+| 3 | 16.1% | +8% to +27% | -1% to +35% | 27 |
+| 5 | 17.5% | +6% to +30% | -7% to +42% | 25 |
+| 10 | 16.2% | -3% to +18% | -15% to +32% | 20 |
+| 15 | 25.1% | +5% to +43% | -17% to +54% | 15 |
+| 20 | 38.0% | -36% to +41% | -49% to +63% | 10 |
 
 **Brand-new launch** (priced from comparables; horizons backed by fewer than 200 launches use the
-nearest that has enough, because few units resell before completion):
+nearest that has enough):
 
-| Years ahead | Typical error | Within 10% | 80% of actual within | Launches |
+| Years ahead | Typical error | Likely (50%) | Plausible (80%) | Launches |
 |---|---|---|---|---|
-| 1 (uses 3-yr) | 20.6% | 23% | -30% to +79% | 371 |
-| 2 (uses 3-yr) | 20.6% | 23% | -30% to +79% | 371 |
-| 3 | 20.6% | 23% | -30% to +79% | 371 |
-| 5 | 20.6% | 24% | -26% to +71% | 980 |
-| 10 | 16.9% | 31% | -28% to +40% | 1027 |
-| 15 | 18.9% | 27% | -27% to +49% | 767 |
-| 20 | 28.4% | 16% | -38% to +56% | 263 |
+| 1 (uses 3-yr) | 20.6% | -6% to +26% | -20% to +65% | 371 |
+| 2 (uses 3-yr) | 20.6% | -6% to +26% | -20% to +65% | 371 |
+| 3 | 20.6% | -6% to +26% | -20% to +65% | 371 |
+| 5 | 20.6% | -6% to +29% | -17% to +51% | 980 |
+| 10 | 16.9% | -17% to +11% | -28% to +31% | 1027 |
+| 15 | 18.9% | -13% to +27% | -29% to +48% | 767 |
+| 20 | 28.4% | -21% to +40% | -35% to +65% | 263 |
 
-EC brand-new launches use the condo launch ranges: only 5–40 EC launches per horizon could be
-tested (`outputs/launch_forecast_backtest.csv`).
+**Unknown completed project** (a project with no transactions in the data and a TOP year in the
+past; valued by LightGBM from location and building features). The bands come from LightGBM
+refitted without each project at start years 2008, 2013 and 2018. Beyond 10 years only 2008
+remains, so the 10-year band is used:
+
+| Years ahead | Typical error | Likely (50%) | Plausible (80%) | Projects |
+|---|---|---|---|---|
+| 1 | 14.6% | -4% to +25% | -16% to +43% | 1930 |
+| 2 | 17.4% | -6% to +31% | -18% to +51% | 1970 |
+| 3 | 17.1% | -8% to +30% | -19% to +51% | 1942 |
+| 5 | 17.1% | -6% to +29% | -20% to +45% | 1719 |
+| 10 | 16.7% | -13% to +22% | -23% to +42% | 1151 |
+| 15 (uses 10-yr) | 16.7% | -13% to +22% | -23% to +42% | 1151 |
+| 20 (uses 10-yr) | 16.7% | -13% to +22% | -23% to +42% | 1151 |
 
 Worked examples of all four paths: `outputs/unit_forecast_example.txt`.
 

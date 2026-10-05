@@ -144,6 +144,10 @@ def _range_table(mode: str, is_ec: bool) -> pd.DataFrame:
         # Few units resell within 2 years of launch (before completion), so horizons backed by
         # fewer than 200 launches use the nearest horizon that has enough.
         t = t[t.groups >= MIN_LAUNCHES]
+    if mode == "unknown completed project":
+        # Start years 2008, 2013 and 2018: beyond 10 years only 2008 remains, so longer
+        # horizons use the 10-year band.
+        t = t[t.index <= 10]
     return t.rename(columns={"typical_err": "err", "range80_lo": "lo", "range80_hi": "hi",
                              "range50_lo": "lo50", "range50_hi": "hi50"})
 
