@@ -4,7 +4,8 @@
     python run_unit_forecast.py artra "#12-05" --area 829
     python run_unit_forecast.py new "#15-03" --area 850 --postal 579837 \\
         --tenure leasehold --top 2030                             # project with no sales yet
-    (add --ec for an executive condominium, --district D20 to override the district)
+    (add --ec for an executive condominium, --district D20 to override the district;
+     a --top year in the past prices a completed project the data has never seen)
 """
 import argparse
 
@@ -61,30 +62,36 @@ if r["comparables"] is not None:
     if len(c) > 10:
         print(f"  ... and {len(c) - 10} more")
 else:
-    show("Transparent model (recent sales in this project + lookup-table adjustments):",
-         r["explain_A"])
+    if r["explain_A"] is not None:
+        show("Transparent model (recent sales in this project + lookup-table adjustments):",
+             r["explain_A"])
     show("LightGBM model (contribution of each factor):", r["explain_B"])
 
 label = {"brand-new launch": "Launch price today (comparable launches)",
          "launch phase": "New-sale price today (this project's recent launch prices)",
+         "unknown completed project": "Resale value today (LightGBM, location and building "
+                                      "features; project not in the data)",
          "resale": "Resale value today (LightGBM)"}[r["mode"]]
 print(f"\n{label}: ${r['psf']:,.0f} psf x {row.area_sqft:,.0f} sqft = S${r['price_now']:,.0f}")
-print(f"  Likely range (80%): S${r['price_now_low']:,.0f} - S${r['price_now_high']:,.0f}"
+print(f"  Likely (50%):    S${r['price_now_low50']:,.0f} - S${r['price_now_high50']:,.0f}")
+print(f"  Plausible (80%): S${r['price_now_low']:,.0f} - S${r['price_now_high']:,.0f}"
       f"   [typical error {r['now_err']:.1f}% on {r['now_source']}]")
-if r["mode"] != "resale":
+if r["mode"] in ("launch phase", "brand-new launch"):
     print(f"  Resale-equivalent value today (no new-launch premium): "
           f"S${r['resale_value_now']:,.0f}; forecasts below are resale values.")
 
 todays = "today's $"
-print("\nForecast (likely range = where 80% of actual resales landed in the backtest for this "
-      "pricing path):")
-print(f"  {'':>7} {'future dollars':>14}  {'80% range':>27}  {todays:>11}  {'market':>7}"
+print("\nForecast. Likely = where 50% of actual resales landed in the backtest for this "
+      "pricing path, plausible = 80%:")
+print(f"  {'':>7} {'future dollars':>14}  {'likely (50%)':>25}  {'plausible (80%)':>27}"
+      f"  {todays:>11}  {'market':>7}"
       f" {'(current':>9} {'TimesFM)':>9}"
       + ("  EC adj" if row.is_ec else "") + "  backtest: typical error, within 10%")
 for _, x in r["forecast"].iterrows():
     ec = f"  {x.ec_adjust_pct:+5.1f}%" if row.is_ec else ""
     note = f" [from {x.backtest_years:.0f}-yr]" if x.backtest_years != x.years else ""
-    print(f"  +{x.years:>2.0f} yr  S${x.value:>12,.0f}  (S${x.low:>10,.0f} - S${x.high:>10,.0f})"
+    print(f"  +{x.years:>2.0f} yr  S${x.value:>12,.0f}  (S${x.low50:>9,.0f} - S${x.high50:>9,.0f})"
+          f"  (S${x.low:>10,.0f} - S${x.high:>10,.0f})"
           f"  S${x.value_todays_dollars:>9,.0f}  {x.market_growth_pct:+6.1f}%"
           f"  ({x.current_path_pct:+6.1f}% {x.timesfm_pct:+6.1f}%){ec}"
           f"   {x.backtest_err_pct:4.1f}%, {x.backtest_within_10pct:.0%}"
