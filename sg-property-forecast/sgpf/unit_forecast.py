@@ -107,6 +107,7 @@ def unit_row(d: pd.DataFrame, slug: str, unit: str, area_sqft: float | None = No
     asof = d.date.max()
     yrs_elapsed = (asof - row.date).days / 365.25
     row["unit"], row["floor"], row["stack"], row["area_sqft"] = unit, floor, stack, area_sqft
+    row["slug_stack"] = f"{slug}|{stack}"  # this unit's stack, not the latest sale's
     row["floor_bin"] = pd.cut([floor], FLOOR_BINS, labels=FLOOR_LABELS)[0]
     row["area_bin"] = pd.cut([area_sqft], AREA_BINS, labels=AREA_LABELS)[0]
     row["sale_type"] = "resale"

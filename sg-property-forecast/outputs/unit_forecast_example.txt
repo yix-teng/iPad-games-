@@ -4,9 +4,9 @@ Pricing path: resale
 
 Transparent model (recent sales in this project + lookup-table adjustments):
   project premium (recent sales) + RCR market level 2026Q3                          -> $2,267 psf
-  stack #xx-05 vs project average                                           +0.2%   -> $2,271 psf
-  floor: 11-15                                                      +2.1% vs 6-10   -> $2,319 psf
-  area: 650-800                                                   +5.5% vs 800-1k   -> $2,448 psf
+  stack #xx-05 vs project average                                           -5.1%   -> $2,152 psf
+  floor: 11-15                                                      +2.1% vs 6-10   -> $2,197 psf
+  area: 650-800                                                   +5.5% vs 800-1k   -> $2,319 psf
 
 LightGBM model (contribution of each factor):
   average condo in training data                                                    -> $1,066 psf
@@ -78,9 +78,9 @@ Pricing path: resale
 
 Transparent model (recent sales in this project + lookup-table adjustments):
   project premium (recent sales) + OCR market level 2026Q3                          -> $1,487 psf
-  stack #xx-12 vs project average                                           +0.6%   -> $1,496 psf
-  area: 1k-1.25k                                                  -5.4% vs 800-1k   -> $1,415 psf
-  ec_age: 3-6                                                               +0.0%   -> $1,415 psf
+  stack #xx-12 vs project average                                           +4.4%   -> $1,552 psf
+  area: 1k-1.25k                                                  -5.4% vs 800-1k   -> $1,469 psf
+  ec_age: 3-6                                                               +0.0%   -> $1,469 psf
 
 LightGBM model (contribution of each factor):
   average condo in training data                                                    -> $1,066 psf
