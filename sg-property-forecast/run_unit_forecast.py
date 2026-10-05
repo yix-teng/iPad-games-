@@ -43,11 +43,14 @@ print(f"  Likely range (80%): S${r['value_now_low']:,.0f} - S${r['value_now_high
 print(f"  Tested on {res['n']} resales in {acc['test_from']}..{acc['test_to']}: typical error"
       f" {res['median_err_pct']}%, {res['within_10pct']:.0%} within 10%")
 
-print("\nForecast, likely range = 80% (future dollars | today's dollars):")
+print("\nForecast (likely range = where 80% of actual resales landed in the 1997-2025"
+      " backtest):")
+print(f"  {'':>7} {'future dollars':>14}  {'80% range':>27}  {"today's $":>11}  "
+      f"{'market':>7}  backtest: typical error, within 10%")
 for _, x in r["forecast"].iterrows():
-    print(f"  +{x.years:>2.0f} yr: S${x.value:>11,.0f}  (S${x.low:,.0f} - S${x.high:,.0f})"
-          f"  | S${x.value_todays_dollars:,.0f}"
-          f"   = market {x.market_growth_pct:+.1f}% x this unit vs market {x.relative_pct:+.1f}%")
-f = r["forecast"].iloc[-1]
-print(f"\n  Market path: {r['forecast'].market_source.unique().tolist()} (URA Non-Landed index)")
-print(f"  Age/lease group used for year {f.years:.0f}: {f.age_lease_group}")
+    print(f"  +{x.years:>2.0f} yr  S${x.value:>12,.0f}  (S${x.low:>10,.0f} - S${x.high:>10,.0f})"
+          f"  S${x.value_todays_dollars:>9,.0f}  {x.market_growth_pct:+6.1f}%"
+          f"   {x.backtest_median_err_pct:4.1f}%, {x.backtest_within_10pct:.0%}"
+          f" ({x.backtest_origins} start years)")
+print("\n  Market path: short-term index model for years 1-2, then base-case income growth"
+      " (URA Non-Landed index).")

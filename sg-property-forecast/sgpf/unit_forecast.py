@@ -1,18 +1,21 @@
-"""Forecast one condo unit: today's value x market path x how units like it kept up.
+"""Forecast one condo unit: today's value x market path, with ranges from a backtest.
 
-    value in N years = value today                    (transparent unit model, recent sales)
-                     x market growth to year N        (URA Non-Landed index: short-term model
-                                                       for 1-2 yrs, income scenarios for 3-10)
-                     x relative performance           (how condos of this age / lease kept up
-                                                       with their region, per year)
+    value in N years = value today                 (unit valuation model)
+                     x market growth to year N     (URA Non-Landed index: short-term model
+                                                    for years 1-2, then base income growth)
 
-Uncertainty has three independent sources, combined in log terms (root-sum-of-squares):
-valuation error today, market range, and how far individual projects stray from their
-age/lease group.
+The 80% range at each horizon is how far actual resale prices landed from forecasts made
+this way in the 1997-2025 backtest (outputs/unit_backtest_by_horizon.csv). It covers
+valuation error and market error together.
+
+An age/lease adjustment (how condos of the unit's age and lease kept up with their region)
+was tested and made the backtest worse at every horizon from 3 years, so it is not applied;
+the table is still produced by run_unit_model.py for information.
 """
 from __future__ import annotations
 
 import pickle
+from pathlib import Path
 
 import numpy as np
 import pandas as pd
@@ -26,7 +29,8 @@ from .unit_model import (AREA_BINS, AREA_LABELS, FLOOR_BINS, FLOOR_LABELS, REL_A
 
 ARTIFACTS = DATA_DIR / "propertynoob" / "unit_model.pkl"
 Z80 = 1.2816  # 80% two-sided normal multiplier
-HORIZONS = (1, 2, 3, 5, 10)
+HORIZONS = (1, 2, 3, 5, 10, 15, 20)
+BACKTEST = Path(__file__).resolve().parent.parent / "outputs" / "unit_backtest_by_horizon.csv"
 
 
 def market_path(series: str = "Non-Landed", horizons=HORIZONS) -> pd.DataFrame:
@@ -128,32 +132,20 @@ def forecast_unit(slug: str, unit: str, area_sqft: float | None = None,
     # 10th/90th percentile of log(actual / predicted) for resales in the test window.
     v_lo, v_hi = acc["chosen_resale_log_resid_q10"], acc["chosen_resale_log_resid_q90"]
     mp = market_path(horizons=horizons)
+    bt = pd.read_csv(BACKTEST, index_col="years")
     out = []
     for _, m in mp.iterrows():
         h = int(m.years)
-        rel_log, rel_var, groups = 0.0, 0.0, []
-        for k in range(h):
-            mean, std, grp = _rel_lookup(tab, row.tenure_type, row.age + k,
-                                         row.lease_left - k if row.tenure_type == "leasehold"
-                                         else np.nan)
-            rel_log += np.log1p(mean / 100)
-            # `std` is the spread of per-year averages over 5-year spans, so one project's
-            # 5-year deviation has sd 5*std; spread evenly that is 5*std^2 variance per year.
-            rel_var += 5 * (std / 100) ** 2
-            groups.append(grp)
-        rel_sd = np.sqrt(rel_var)
-        central = value * m.central * np.exp(rel_log)
-        lo_w = np.sqrt(v_lo ** 2 + np.log(m.lo / m.central) ** 2 + (Z80 * rel_sd) ** 2)
-        hi_w = np.sqrt(v_hi ** 2 + np.log(m.hi / m.central) ** 2 + (Z80 * rel_sd) ** 2)
+        central = value * m.central
+        b = bt.loc[min(h, bt.index.max())]
         defl = (1 + m.inflation_pa) ** h
         out.append({"years": h, "market_source": m.source,
-                    "market_growth_pct": (m.central - 1) * 100,
-                    "relative_pct": (np.exp(rel_log) - 1) * 100,
-                    "value": central, "low": central * np.exp(-lo_w),
-                    "high": central * np.exp(hi_w), "value_todays_dollars": central / defl,
-                    "low_todays_dollars": central * np.exp(-lo_w) / defl,
-                    "high_todays_dollars": central * np.exp(hi_w) / defl,
-                    "age_lease_group": groups[-1]})
+                    "market_growth_pct": (m.central - 1) * 100, "value": central,
+                    "low": central * (1 + b.range80_lo / 100),
+                    "high": central * (1 + b.range80_hi / 100),
+                    "value_todays_dollars": central / defl,
+                    "backtest_median_err_pct": b.market_median_err,
+                    "backtest_within_10pct": b.within_10, "backtest_origins": int(b.origins)})
     return {"row": row, "psf": psf, "psf_A": psf_a, "psf_B": psf_b, "rule": rule,
             "value_now": value, "value_now_low": value * np.exp(v_lo),
             "value_now_high": value * np.exp(v_hi), "explain_A": A.explain(row),

@@ -1,33 +1,4 @@
-artra #12-05: 786 sqft, floor 12, leasehold (88 yrs left), building age 6 yrs, RCR, D3, 97 m to nearest MRT exit
-
-Transparent model (recent sales in this project + lookup-table adjustments):
-  project premium (recent sales) + RCR market level 2026Q3                          -> $2,267 psf
-  stack #xx-05 vs project average                                           +0.2%   -> $2,271 psf
-  floor: 11-15                                                      +2.1% vs 6-10   -> $2,319 psf
-  area: 650-800                                                   +5.5% vs 800-1k   -> $2,448 psf
-
-LightGBM model (contribution of each factor):
-  average condo in training data                                                    -> $1,066 psf
-  project & location                                                       +26.3%   -> $1,347 psf
-  market level now vs 1995-2026 average                                    +63.8%   -> $2,206 psf
-  floor                                                                     +1.4%   -> $2,237 psf
-  size                                                                      +6.9%   -> $2,392 psf
-  building age                                                              -2.9%   -> $2,323 psf
-  lease left                                                                +0.8%   -> $2,342 psf
-  tenure                                                                    -0.3%   -> $2,336 psf
-  EC status                                                                 +0.1%   -> $2,340 psf
-  sale type                                                                 -0.4%   -> $2,330 psf
-
-Estimate today (lightgbm): $2,330 psf x 786 sqft = S$1,830,755
-  Likely range (80%): S$1,727,738 - S$2,007,148
-  Tested on 4671 resales in 2026-04..2026-09: typical error 3.97%, 88% within 10%
-
-Forecast, likely range = 80% (future dollars | today's dollars):
-  + 1 yr: S$  1,894,949  (S$1,706,254 - S$2,131,218)  | S$1,865,291   = market +3.5% x this unit vs market -0.0%
-  + 2 yr: S$  1,969,965  (S$1,688,855 - S$2,288,781)  | S$1,908,783   = market +7.7% x this unit vs market -0.1%
-  + 3 yr: S$  2,059,307  (S$1,634,592 - S$2,707,335)  | S$1,964,121   = market +12.6% x this unit vs market -0.1%
-  + 5 yr: S$  2,250,331  (S$1,665,244 - S$3,007,197)  | S$2,079,656   = market +23.1% x this unit vs market -0.1%
-  +10 yr: S$  2,780,778  (S$1,828,548 - S$3,847,460)  | S$2,374,962   = market +53.9% x this unit vs market -1.3%
-
-  Market path: ['short-term index model', 'short-term to year 2, then base income growth'] (URA Non-Landed index)
-  Age/lease group used for year 10: leasehold, age 10-15, lease 70-80
+  File "/home/user/iPad-games-/sg-property-forecast/run_unit_forecast.py", line 48
+    print(f"  {'':>7} {'future dollars':>14}  {'80% range':>27}  {"today's $":>11}  "
+                                                                        ^
+SyntaxError: unterminated string literal (detected at line 48)

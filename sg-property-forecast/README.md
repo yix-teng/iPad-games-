@@ -6,7 +6,7 @@ Four complementary models:
 |---|---|---|---|
 | **Index model** (`run_index_forecast.py`) | Where is the market going over the next 1–8 quarters? | URA Private Residential Property Price Index, 1975Q1–present (data.gov.sg, no key needed) | ARIMA, ridge, LightGBM, and an ensemble, with direct multi-horizon targets. Compared against random-walk and drift baselines |
 | **Long-run scenarios** (`run_long_run.py`) | Where could prices be in 3–10 years? | Same index + SingStat nominal GDP, population and CPI (data.gov.sg) | Rule: prices grow with incomes. The scenarios are real income growth plus inflation, results come in future dollars and today's dollars, and the range comes from how far prices deviated from incomes in past decades |
-| **Unit forecast** (`run_unit_model.py`, `run_unit_forecast.py`) | What is this condo unit worth now, and in 1–10 years? | ~600k condo sales since 1995 from propertynoob.com (not committed), OneMap geocoding, LTA MRT exits | Valuation from a transparent model and LightGBM, times the market path, times how condos of the same age and lease kept up with their region |
+| **Unit forecast** (`run_unit_model.py`, `run_unit_forecast.py`) | What is this condo unit worth now, and in 1–20 years? | ~600k condo sales since 1995 from propertynoob.com (not committed), OneMap geocoding, LTA MRT exits | Valuation from a transparent model and LightGBM, times the market path. Ranges come from a 1997–2025 backtest against actual resale prices |
 | **Hedonic model** (`run_hedonic.py`) | What is a specific unit worth? | URA private residential transactions (last ~5 yrs, [free URA API key](https://eservice.ura.gov.sg/maps/api/reg.html)) | LightGBM on log price per sqm. Features: project, segment (CCR/RCR/OCR), district, area, floor, tenure and remaining lease, location, sale date |
 
 To combine them, the hedonic model prices a unit at today's market level and the index
@@ -20,6 +20,7 @@ python run_index_forecast.py                       # All Residential; also --ser
 python run_long_run.py                             # 3/5/10-year scenarios; --base 0.03 --inflation 0.02 etc.
 python -m sgpf.propertynoob                        # collect condo sales (~2.5 h, resumable)
 python run_unit_model.py                           # fit + test unit models
+python run_unit_backtest.py                        # 1-20 yr backtest (~25 min)
 python run_unit_forecast.py artra "#12-05"         # one unit
 python run_hedonic.py --ura-key YOUR_ACCESS_KEY    # needs a URA key
 python -m pytest -q tests
@@ -149,9 +150,10 @@ inside the historical range.
 value in N years = value today                 (valuation model)
                  × market growth to year N     (URA Non-Landed index: short-term model for
                                                 years 1–2, then base-case income growth)
-                 × relative performance        (how condos of this age and lease kept up
-                                                with their region, per year)
 ```
+
+The range at each horizon is where 80% of actual resale prices landed relative to forecasts
+made this way in the backtest below.
 
 ### Data
 
@@ -213,37 +215,65 @@ have **not** clearly lagged. Two caveats: the groups with short leases are small
 already sold en bloc are missing from the site. Survivors, and old condos that buyers expect
 to go en bloc, may make old condos look better than a typical old condo really did.
 
-### Ranges
+### Accuracy 1–20 years ahead (backtest)
 
-Each range combines three independent sources in log terms, as the square root of the sum
-of squares:
+For each year-end from 1997 to 2025 (the "start year"), only data available at that time was
+used:
 
-1. Valuation error: the 10th–90th percentile of resale errors in the test window.
-2. The market range at that horizon.
-3. Project-to-project spread within the age/lease group, scaled from the 5-year spans
-   assuming deviations build up evenly.
+1. Units were valued with the transparent model fitted on sales up to then.
+2. Values were grown with the short-term index forecast for years 1–2, then with the
+   trailing 10-year income growth.
+3. The forecasts were compared with the actual resale prices of the same units (same
+   project and unit number) 1–20 years later.
 
-Only the valuation part has been tested on its own. The combined ranges have not been
-backtested.
+LightGBM was not refitted for every start year; today it is about 2 points more accurate at
+valuation, which matters only at short horizons.
+
+| Years ahead | Start years | Resales tested | Typical error | Within 10% | Within 20% | 80% of actual prices landed within | No-growth baseline error |
+|---|---|---|---|---|---|---|---|
+| 1 | 29 | 365k | **7.9%** | 60% | 84% | −14% to +23% | 8.3% |
+| 2 | 28 | 239k | **11.5%** | 45% | 72% | −20% to +33% | 12.4% |
+| 3 | 27 | 232k | **13.1%** | 40% | 68% | −21% to +35% | 16.2% |
+| 5 | 25 | 214k | **18.2%** | 30% | 55% | −28% to +46% | 21.7% |
+| 10 | 20 | 127k | **29.0%** | 13% | 33% | −44% to +39% | 27.3% |
+| 15 | 15 | 55k | **22.3%** | 22% | 45% | −47% to +40% | 46.3% |
+| 20 | 10 | 26k | **35.3%** | 15% | 31% | −69% to +47% | 52.4% |
+
+Full table for every year: `outputs/unit_backtest_by_horizon.csv`.
+
+**How to read this:**
+
+* **Start year matters most.** Units in the same start year share one market path, so their
+  errors move together. Typical 10-year error by start year ranged from −36% (forecasts made
+  in 2003, too low) to +106% (forecasts made in 1997, too high: 9%/yr income growth was
+  extrapolated just before the Asian crisis).
+* **Long horizons rest on few independent periods.** The 20-year figures come from only 10
+  start years (1997–2006), which is one market cycle.
+* **At 9–10 years the no-growth baseline did as well as the forecast.** Starts in 2007 and
+  2010–2013 were followed by cooling measures and a slump, and the income-growth path
+  over-forecast them by 30–44%.
+* **The age/lease adjustment was dropped.** "Valuation × market path × age/lease relative
+  performance" had a higher error than "valuation × market path" at every horizon from 3
+  years (for example 32.9% vs 29.0% at 10 years). The unit forecast therefore does not apply
+  it; the table above is kept for information.
 
 ### Example: Artra #12-05 (786 sqft, 12th floor, 99-yr lease from 2016, RCR)
 
 See `outputs/unit_forecast_example.txt`. Value today is **S$1.83M** (80% range S$1.73M–2.01M).
 Same-size units on floors 25 and 33 sold for S$1.945M–1.949M in mid-2026.
 
-| Horizon | Future dollars | 80% range | Today's dollars |
+| Horizon | Future dollars | 80% range (backtest) | Today's dollars |
 |---|---|---|---|
-| 1 yr | S$1.89M | 1.71–2.13M | S$1.87M |
-| 5 yr | S$2.25M | 1.67–3.01M | S$2.08M |
-| 10 yr | S$2.78M | 1.83–3.85M | S$2.37M |
+| 1 yr | S$1.90M | 1.64–2.33M | S$1.87M |
+| 5 yr | S$2.25M | 1.62–3.29M | S$2.08M |
+| 10 yr | S$2.82M | 1.57–3.91M | S$2.41M |
+| 20 yr | S$4.40M | 1.38–6.47M | S$3.21M |
 
 ## Possible next steps
 
 * Add macro drivers to the short-term model (3M SORA or mortgage rates, unemployment,
   new-launch supply and the unsold pipeline, HDB resale index). This is likely the biggest
   gain, but the drivers must be forecast or lagged to avoid look-ahead.
-* Backtest the combined unit-forecast ranges, for example by valuing units as at 2016 and
-  comparing with their 2021 resale prices.
 * Add en-bloc history (demolished projects) to remove survivorship bias from the ageing table.
 * Forecast the region sub-indices (CCR/RCR/OCR) or a monthly index built from transactions,
   which gives about 3× more data points.

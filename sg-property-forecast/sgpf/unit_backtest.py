@@ -94,7 +94,9 @@ def run_origin(d: pd.DataFrame, year: int, max_h: int = 20) -> pd.DataFrame:
         "market_g1": g1, "income_g": g_inc})
 
 
-def summarise(bt: pd.DataFrame) -> pd.DataFrame:
+def summarise(bt: pd.DataFrame, method: str = "market") -> pd.DataFrame:
+    """Accuracy by horizon. `method` is the forecast whose range is reported ("market" =
+    valuation x market path, the version the unit forecast uses)."""
     rows = []
     for h, g in bt.groupby("h"):
         r = {"years": h, "sales": len(g), "origins": g.origin.nunique(),
@@ -102,15 +104,13 @@ def summarise(bt: pd.DataFrame) -> pd.DataFrame:
         for m in ("flat", "market", "full"):
             e = np.exp(g[m] - g.actual) - 1  # predicted / actual - 1
             r[f"{m}_median_err"] = e.abs().median() * 100
-            if m == "full":
-                r["full_within_10"] = (e.abs() < 0.10).mean()
-                r["full_within_20"] = (e.abs() < 0.20).mean()
-                r["full_bias"] = e.median() * 100
-                # range of actual/predicted that held 80% of outcomes
-                ratio = np.exp(g.actual - g[m])
-                r["range80_lo"], r["range80_hi"] = (np.quantile(ratio, [0.1, 0.9]) - 1) * 100
-                # same, but each origin weighted equally (big cohorts don't dominate)
-                r["full_median_err_by_origin"] = g.assign(a=e.abs()).groupby("origin") \
-                    .a.median().median() * 100
+        e = np.exp(g[method] - g.actual) - 1
+        r["within_10"] = (e.abs() < 0.10).mean()
+        r["within_20"] = (e.abs() < 0.20).mean()
+        r["bias"] = e.median() * 100  # + = forecast too high
+        ratio = np.exp(g.actual - g[method])  # actual / forecast
+        r["range80_lo"], r["range80_hi"] = (np.quantile(ratio, [0.1, 0.9]) - 1) * 100
+        # each origin weighted equally, so big cohorts don't dominate
+        r["median_err_by_origin"] = e.abs().groupby(g.origin).median().median() * 100
         rows.append(r)
     return pd.DataFrame(rows).set_index("years")
