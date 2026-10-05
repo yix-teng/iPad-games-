@@ -1,8 +1,9 @@
 """Forecast one condo unit: today's value x market path, with ranges from a backtest.
 
     value in N years = value today                 (unit valuation model)
-                     x market growth to year N     (URA Non-Landed index: short-term model
-                                                    for years 1-2, then base income growth)
+                     x market growth to year N     (URA Non-Landed index: average of the
+                                                    short-term model for years 1-2 then base
+                                                    income growth, and TimesFM 3.0)
 
 The 80% range at each horizon is how far actual resale prices landed from forecasts made
 this way in the 1997-2025 backtest with LightGBM valuations refitted at each start year
@@ -34,39 +35,42 @@ BACKTEST = Path(__file__).resolve().parent.parent / "outputs" / "unit_backtest_b
 
 
 def market_path(series: str = "Non-Landed", horizons=HORIZONS) -> pd.DataFrame:
-    """Market growth multipliers (central and 80% band) per horizon, plus CPI deflator."""
+    """Market growth multipliers per horizon: the average (geometric mean) of
+    * current path: short-term index model for years 1-2, then base-case income growth, and
+    * TimesFM 3.0's forecast of the index (sgpf.market_timesfm).
+    Also returns both components and the CPI assumption."""
+    from .market_timesfm import timesfm_growth, timesfm_log_path
     cache = DATA_DIR / f"market_path_{series.replace(' ', '_')}.csv"
     s = fetch_price_index()[series].dropna()
+    p0, t0 = s.iloc[-1], s.index[-1]
     if cache.exists():
         mp = pd.read_csv(cache)
-        if mp.attrs_quarter.iloc[0] == str(s.index[-1]):
-            return mp
-    rows, p0 = [], s.iloc[-1]
-    # Years 1-2: short-term index model. Later years continue from its year-2 value at the
-    # base-case income growth, so the path has no jump where the sources hand over; the
-    # range at each horizon is the long-run model's historical range for that horizon.
+        if mp.attrs_quarter.iloc[0] == str(t0) and "timesfm" in mp and \
+                set(mp.years) >= set(horizons):
+            return mp[mp.years.isin(horizons)].reset_index(drop=True)
     bt = backtest(s, horizons=[4, 8], models=["ensemble"])
     fc = forecast(s, "ensemble", horizons=[4, 8], bt=bt).table
-    short = {h: fc[fc.h == 4 * h].iloc[0] for h in (1, 2)}
+    l1 = np.log(fc[fc.h == 4].point.iloc[0] / p0)
+    l2 = np.log(fc[fc.h == 8].point.iloc[0] / p0)
     a = scenario_anchors(series=series)
-    g_nom = (1 + a["base"]) * (1 + a["inflation"]) - 1
-    sc = scenarios({"base": a["base"]}, a["inflation"], years=max(horizons), series=series)
-    for h in horizons:
-        if h <= 2:
-            r = short[h]
-            rows.append({"years": h, "source": "short-term index model",
-                         "central": r.point / p0, "lo": r.lo80 / p0, "hi": r.hi80 / p0})
-        else:
-            c = short[2].point / p0 * (1 + g_nom) ** (h - 2)
-            r = sc[sc.years == h].iloc[0]
-            rows.append({"years": h, "source": "short-term to year 2, then base income growth",
-                         "central": c, "lo": c * r.likely_lo / r.central,
-                         "hi": c * r.likely_hi / r.central})
+    g = np.log((1 + a["base"]) * (1 + a["inflation"]))
+
+    def current(x):
+        x = np.asarray(x, dtype=float)
+        return np.exp(np.where(x <= 1, x * l1,
+                      np.where(x <= 2, l1 + (x - 1) * (l2 - l1), l2 + (x - 2) * g)))
+
+    path = timesfm_log_path(t0, series)
+    rows = []
+    for h in sorted(set(horizons) | set(range(1, 21))):
+        c, tf = float(current(h)), float(timesfm_growth(path, h))
+        rows.append({"years": h, "central": np.sqrt(c * tf), "current": c, "timesfm": tf,
+                     "source": "average of current path and TimesFM 3.0"})
     mp = pd.DataFrame(rows)
     mp["inflation_pa"] = a["inflation"]
-    mp["attrs_quarter"] = str(s.index[-1])
+    mp["attrs_quarter"] = str(t0)
     mp.to_csv(cache, index=False)
-    return mp
+    return mp[mp.years.isin(horizons)].reset_index(drop=True)
 
 
 def _rel_lookup(tab: pd.DataFrame, tenure: str, age: float, lease_left: float,
@@ -127,11 +131,11 @@ def _range_table(mode: str, is_ec: bool) -> pd.DataFrame:
     Columns: err, within_10, lo, hi, groups (start years or launches)."""
     if is_ec and mode != "brand-new launch":
         t = pd.read_csv(OUT / "ec_backtest.csv")
-        t = t[t.method == "EC resale, with EC adjustment"].set_index("years")
+        t = t[t.method == "EC resale, with EC adjustment, TimesFM average"].set_index("years")
         return t.rename(columns={"typical_err": "err", "range80_lo": "lo", "range80_hi": "hi"})
     if mode == "brand-new launch":
         t = pd.read_csv(OUT / "launch_forecast_backtest.csv")
-        t = t[t.method == "launch, condo/apartment"].set_index("years")
+        t = t[t.method == "launch, condo/apartment, TimesFM average"].set_index("years")
         # Few units resell within 2 years of launch (before completion), so horizons backed by
         # fewer than 200 launches use the nearest horizon that has enough.
         t = t[t.groups >= MIN_LAUNCHES]
@@ -263,6 +267,8 @@ def forecast_unit(slug: str | None, unit: str, area_sqft: float | None = None,
         b = rt.loc[rt.index[np.argmin(np.abs(rt.index - h))]]  # nearest backtested horizon
         defl = (1 + m.inflation_pa) ** h
         out.append({"years": h, "market_growth_pct": (m.central - 1) * 100,
+                    "current_path_pct": (m.current - 1) * 100,
+                    "timesfm_pct": (m.timesfm - 1) * 100,
                     "ec_adjust_pct": (np.exp(adj) - 1) * 100, "value": central,
                     "low": central * (1 + b.lo / 100), "high": central * (1 + b.hi / 100),
                     "value_todays_dollars": central / defl,

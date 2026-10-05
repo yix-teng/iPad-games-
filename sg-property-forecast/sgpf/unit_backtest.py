@@ -109,7 +109,7 @@ def summarise(bt: pd.DataFrame, method: str = "market") -> pd.DataFrame:
     for h, g in bt.groupby("h"):
         r = {"years": h, "sales": len(g), "origins": g.origin.nunique(),
              "first_origin": g.origin.min(), "last_origin": g.origin.max()}
-        for m in ("flat", "market", "full", "flat_gbm", "market_gbm"):
+        for m in ("flat", "market", "full", "flat_gbm", "market_gbm", "market_avg"):
             if m in g and g[m].notna().any():
                 e = np.exp(g[m] - g.actual) - 1  # predicted / actual - 1
                 r[f"{m}_median_err"] = e.abs().median() * 100

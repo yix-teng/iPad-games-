@@ -79,14 +79,17 @@ todays = "today's $"
 print("\nForecast (likely range = where 80% of actual resales landed in the backtest for this "
       "pricing path):")
 print(f"  {'':>7} {'future dollars':>14}  {'80% range':>27}  {todays:>11}  {'market':>7}"
+      f" {'(current':>9} {'TimesFM)':>9}"
       + ("  EC adj" if row.is_ec else "") + "  backtest: typical error, within 10%")
 for _, x in r["forecast"].iterrows():
     ec = f"  {x.ec_adjust_pct:+5.1f}%" if row.is_ec else ""
     note = f" [from {x.backtest_years:.0f}-yr]" if x.backtest_years != x.years else ""
     print(f"  +{x.years:>2.0f} yr  S${x.value:>12,.0f}  (S${x.low:>10,.0f} - S${x.high:>10,.0f})"
-          f"  S${x.value_todays_dollars:>9,.0f}  {x.market_growth_pct:+6.1f}%{ec}"
+          f"  S${x.value_todays_dollars:>9,.0f}  {x.market_growth_pct:+6.1f}%"
+          f"  ({x.current_path_pct:+6.1f}% {x.timesfm_pct:+6.1f}%){ec}"
           f"   {x.backtest_err_pct:4.1f}%, {x.backtest_within_10pct:.0%}"
           f" ({x.backtest_groups:.0f} {'launches' if r['mode'] == 'brand-new launch' else 'start years'})"
           f"{note}")
-print("\n  Market path: short-term index model for years 1-2, then base-case income growth"
-      " (URA Non-Landed index).")
+print("\n  Market path (URA Non-Landed index): average of the current path (short-term index"
+      " model for years 1-2, then\n  base-case income growth) and Google TimesFM 3.0's"
+      " forecast. Ranges are from the backtest of this averaged path.")
