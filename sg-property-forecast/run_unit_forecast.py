@@ -45,7 +45,8 @@ print(f"  Tested on {res['n']} resales in {acc['test_from']}..{acc['test_to']}: 
 
 print("\nForecast (likely range = where 80% of actual resales landed in the 1997-2025"
       " backtest):")
-print(f"  {'':>7} {'future dollars':>14}  {'80% range':>27}  {"today's $":>11}  "
+todays = "today's $"
+print(f"  {'':>7} {'future dollars':>14}  {'80% range':>27}  {todays:>11}  "
       f"{'market':>7}  backtest: typical error, within 10%")
 for _, x in r["forecast"].iterrows():
     print(f"  +{x.years:>2.0f} yr  S${x.value:>12,.0f}  (S${x.low:>10,.0f} - S${x.high:>10,.0f})"

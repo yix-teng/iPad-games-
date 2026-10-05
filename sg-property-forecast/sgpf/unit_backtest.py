@@ -121,5 +121,6 @@ def summarise(bt: pd.DataFrame, method: str = "market") -> pd.DataFrame:
         r["range80_lo"], r["range80_hi"] = (np.quantile(ratio, [0.1, 0.9]) - 1) * 100
         # each origin weighted equally, so big cohorts don't dominate
         r["median_err_by_origin"] = e.abs().groupby(g.origin).median().median() * 100
+        r["method"] = method
         rows.append(r)
     return pd.DataFrame(rows).set_index("years")

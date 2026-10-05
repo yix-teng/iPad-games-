@@ -5,8 +5,8 @@
                                                     for years 1-2, then base income growth)
 
 The 80% range at each horizon is how far actual resale prices landed from forecasts made
-this way in the 1997-2025 backtest (outputs/unit_backtest_by_horizon.csv). It covers
-valuation error and market error together.
+this way in the 1997-2025 backtest with LightGBM valuations refitted at each start year
+(outputs/unit_backtest_by_horizon.csv). It covers valuation and market error together.
 
 An age/lease adjustment (how condos of the unit's age and lease kept up with their region)
 was tested and made the backtest worse at every horizon from 3 years, so it is not applied;
@@ -144,7 +144,7 @@ def forecast_unit(slug: str, unit: str, area_sqft: float | None = None,
                     "low": central * (1 + b.range80_lo / 100),
                     "high": central * (1 + b.range80_hi / 100),
                     "value_todays_dollars": central / defl,
-                    "backtest_median_err_pct": b.market_median_err,
+                    "backtest_median_err_pct": b[f"{b.get('method', 'market')}_median_err"],
                     "backtest_within_10pct": b.within_10, "backtest_origins": int(b.origins)})
     return {"row": row, "psf": psf, "psf_A": psf_a, "psf_B": psf_b, "rule": rule,
             "value_now": value, "value_now_low": value * np.exp(v_lo),

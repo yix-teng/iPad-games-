@@ -220,26 +220,40 @@ to go en bloc, may make old condos look better than a typical old condo really d
 For each year-end from 1997 to 2025 (the "start year"), only data available at that time was
 used:
 
-1. Units were valued with the transparent model fitted on sales up to then.
+1. Units were valued with LightGBM (and, for comparison, the transparent model) fitted on
+   sales up to then.
 2. Values were grown with the short-term index forecast for years 1–2, then with the
    trailing 10-year income growth.
 3. The forecasts were compared with the actual resale prices of the same units (same
    project and unit number) 1–20 years later.
 
-LightGBM was not refitted for every start year; today it is about 2 points more accurate at
-valuation, which matters only at short horizons.
+| Years ahead | Start years | Resales tested | Typical error | Within 10% | Within 20% | 80% of actual prices landed within | Forecast bias | No-growth baseline error |
+|---|---|---|---|---|---|---|---|---|
+| 1 | 29 | 365k | **8.0%** | 58% | 85% | -11% to +26% | -3.3% | 8.7% |
+| 2 | 28 | 239k | **11.2%** | 46% | 75% | -16% to +33% | -2.1% | 13.0% |
+| 3 | 27 | 232k | **13.6%** | 38% | 67% | -20% to +38% | -2.7% | 17.0% |
+| 4 | 26 | 225k | **17.1%** | 31% | 57% | -24% to +46% | -3.1% | 19.9% |
+| 5 | 25 | 214k | **19.3%** | 27% | 52% | -27% to +51% | -2.2% | 21.8% |
+| 7 | 23 | 185k | **23.0%** | 24% | 44% | -34% to +56% | +4.3% | 24.1% |
+| 10 | 20 | 127k | **28.0%** | 17% | 35% | -40% to +44% | +17.0% | 29.1% |
+| 15 | 15 | 55k | **22.8%** | 22% | 44% | -43% to +46% | -3.5% | 49.3% |
+| 20 | 10 | 26k | **38.3%** | 13% | 26% | -68% to +55% | +17.5% | 53.3% |
 
-| Years ahead | Start years | Resales tested | Typical error | Within 10% | Within 20% | 80% of actual prices landed within | No-growth baseline error |
-|---|---|---|---|---|---|---|---|
-| 1 | 29 | 365k | **7.9%** | 60% | 84% | −14% to +23% | 8.3% |
-| 2 | 28 | 239k | **11.5%** | 45% | 73% | −20% to +33% | 12.4% |
-| 3 | 27 | 232k | **13.1%** | 40% | 69% | −21% to +35% | 16.2% |
-| 5 | 25 | 214k | **18.2%** | 30% | 54% | −28% to +46% | 21.7% |
-| 10 | 20 | 127k | **29.0%** | 13% | 32% | −44% to +39% | 27.3% |
-| 15 | 15 | 55k | **22.3%** | 22% | 45% | −47% to +40% | 46.3% |
-| 20 | 10 | 26k | **35.3%** | 15% | 29% | −69% to +47% | 52.4% |
+**Start years 2016–2025 only** (a calmer period with richer data; few start years at
+longer horizons, so treat these as the good-times case, not the expected case):
 
-Full table for every year: `outputs/unit_backtest_by_horizon.csv`.
+| Years ahead | Start years | Typical error | Within 10% | 80% of actual prices landed within |
+|---|---|---|---|---|
+| 1 | 10 | 5.2% | 79% | -7% to +13% |
+| 2 | 9 | 7.1% | 66% | -10% to +18% |
+| 3 | 8 | 7.8% | 62% | -10% to +20% |
+| 5 | 6 | 9.9% | 50% | -12% to +27% |
+| 7 | 4 | 12.6% | 40% | -16% to +31% |
+
+Forecast bias is the median of forecast vs actual (+ = forecast too high). Valuations are LightGBM, refitted at each start year on data up to then; the unit forecast uses these ranges.
+
+Full tables for every year: `outputs/unit_backtest_by_horizon.csv` (all start years) and
+`outputs/unit_backtest_by_horizon_since2016.csv`.
 
 **How to read this:**
 
@@ -257,7 +271,7 @@ Full table for every year: `outputs/unit_backtest_by_horizon.csv`.
   years (for example 32.9% vs 29.0% at 10 years). The unit forecast therefore does not apply
   it; the table above is kept for information.
 
-### Attempts to improve accuracy (none adopted)
+### Attempts to improve accuracy
 
 The backtest was split into two error sources. Valuation and unit-level noise account for an
 error of about 7–14% even if the market path had been known exactly. Everything above that is
@@ -266,7 +280,7 @@ backtest:
 
 | Step | What was tested | Result | Files |
 |---|---|---|---|
-| 1 | LightGBM valuation refitted at every start year | Same overall: 1 yr 8.0% vs 7.9%, 10 yr 28.0% vs 29.0%. Slightly better for start years 2016+ (1 yr 5.2% vs 5.8%) | `outputs/unit_backtest_step1_lightgbm.csv` |
+| 1 | LightGBM valuation refitted at every start year | Same overall: 1 yr 8.0% vs 7.9%, 10 yr 28.0% vs 29.0%. Slightly better for start years 2016+ (1 yr 5.2% vs 5.8%). **Adopted for the forecast ranges**, since the tool values units with LightGBM | `outputs/unit_backtest_step1_lightgbm.csv` |
 | 2 | Project features known at the start year: nearby new-launch supply, construction pipeline, MRT distance and upcoming stations (hand-coded opening years), en-bloc proxies, age, size, location, 3-yr momentum. Walk-forward ridge on de-meaned errors | Worse at every horizon from 2 yrs, with or without per-year effects. Each effect is under 3% per standard deviation and unstable over time | `outputs/unit_backtest_step2_*.csv`, `outputs/unit_step2_feature_effects*.csv` |
 | 3 | Leading indicators in the short-term index model: 10-yr SGS yield and its change, pipeline/stock, vacancy, plus a variant with cooling measures | Index error worse at 2–4 quarters ahead (e.g. 4 quarters: 5.7 vs 4.7 pts RMSE). Unit error 1 yr 7.8% vs 7.9% (better in 11 of 29 start years); unchanged from 3 yrs | `outputs/index_backtest_step3.csv`, `outputs/unit_backtest_step3.csv` |
 
@@ -280,10 +294,11 @@ Same-size units on floors 25 and 33 sold for S$1.945M–1.949M in mid-2026.
 
 | Horizon | Future dollars | 80% range (backtest) | Today's dollars |
 |---|---|---|---|
-| 1 yr | S$1.90M | 1.64–2.33M | S$1.87M |
-| 5 yr | S$2.25M | 1.62–3.29M | S$2.08M |
-| 10 yr | S$2.82M | 1.57–3.91M | S$2.41M |
-| 20 yr | S$4.40M | 1.38–6.47M | S$3.21M |
+| 1 yr | S$1.90M | 1.68–2.38M | S$1.87M |
+| 3 yr | S$2.06M | 1.66–2.85M | S$1.97M |
+| 5 yr | S$2.25M | 1.65–3.40M | S$2.08M |
+| 10 yr | S$2.82M | 1.70–4.07M | S$2.41M |
+| 20 yr | S$4.40M | 1.39–6.81M | S$3.21M |
 
 ## Possible next steps
 
